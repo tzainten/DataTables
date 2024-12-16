@@ -1,6 +1,7 @@
 using DataTables;
 using Editor;
 using Sandbox;
+using Json = DataTables.Json;
 
 namespace DataTablesEditor;
 
@@ -23,6 +24,22 @@ public class DataTableEditor : DockWindow
 		SetWindowIcon( "equalizer" );
 
 		Show();
+
+		JsonDummy o = new();
+		o.Test = 5;
+		o.Numbers = new();
+
+		MyClass o1 = new();
+		o1.Blue = 99;
+		o1.List = new();
+
+		MyClass o2 = new();
+		o2.Blue = 65536;
+		o1.List.Add( o2 );
+
+		o.Numbers.Add( o1 );
+
+		Log.Info( Json.Serialize( o ) );
 	}
 
 	[Shortcut( "editor.save", "CTRL+S", ShortcutType.Window )]
