@@ -114,7 +114,7 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 	}
 }
 
-public class DataTableEditor : DockWindow, IAssetEditor
+public class DataTableEditor : DockWindow
 {
 	public bool CanOpenMultipleAssets => false;
 
@@ -127,15 +127,6 @@ public class DataTableEditor : DockWindow, IAssetEditor
 		SetWindowIcon( "equalizer" );
 
 		Show();
-	}
-
-	public void AssetOpen( Asset asset )
-	{
-	}
-
-	public void SelectMember( string memberName )
-	{
-		throw new System.NotImplementedException();
 	}
 
 	public override void SetWindowIcon( string name )
