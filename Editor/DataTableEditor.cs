@@ -1,3 +1,5 @@
+using System.Linq;
+using DataTables;
 using Editor;
 using Sandbox;
 using Sandbox.UI;
@@ -23,6 +25,18 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 		Layout.Spacing = 8;
 
 		var dropdown = new Dropdown();
+		dropdown.PopulatePopup = widget =>
+		{
+			var structTypes = TypeLibrary.GetTypes().Where( x => x.TargetType.IsSubclassOf( typeof(RowStruct) ) );
+
+			foreach ( var structType in structTypes )
+			{
+				var btn = new DropdownButton( dropdown, structType.Name );
+				btn.Value = structType;
+				widget.Layout.Add( btn );
+			}
+		};
+
 		var lbl = new Label( "Please assign a RowStruct type to this Data Table:" );
 
 		Layout.AddStretchCell();

@@ -6,7 +6,7 @@ namespace DataTablesEditor;
 
 public class Dropdown : Widget
 {
-	public Action Clicked;
+	public Action<Widget> PopulatePopup;
 
 	private Label _label;
 
@@ -21,6 +21,7 @@ public class Dropdown : Widget
 		{
 			if ( _labelIcon.IsValid() )
 			{
+				Log.Info( value );
 				_labelIcon.Icon = value;
 				Rebuild();
 			}
@@ -43,6 +44,8 @@ public class Dropdown : Widget
 			return _label?.Text;
 		}
 	}
+
+	private PopupWidget _popupMenu;
 
 	public Dropdown( string title = null )
 	{
@@ -68,7 +71,7 @@ public class Dropdown : Widget
 		Rebuild();
 	}
 
-	private void Rebuild()
+	public void Rebuild()
 	{
 		Layout.Clear( false );
 
@@ -80,12 +83,36 @@ public class Dropdown : Widget
 		Layout.Add( _arrowIcon );
 	}
 
+	public void ClosePopup()
+	{
+		_popupMenu.Close();
+	}
+
 	protected override void OnMouseClick( MouseEvent e )
 	{
 		base.OnMouseClick( e );
 
-		if ( Clicked is not null )
-			Clicked();
+		_popupMenu = new PopupWidget( null );
+		_popupMenu.Layout = Layout.Column();
+		_popupMenu.MinimumWidth = ScreenRect.Width;
+
+		ScrollArea scroll = new ScrollArea( _popupMenu );
+		_popupMenu.Layout.Add( scroll, 1 );
+
+		scroll.Canvas = new Widget( scroll )
+		{
+			Layout = Layout.Column(),
+			VerticalSizeMode = SizeMode.CanGrow | SizeMode.Expand
+		};
+
+		if ( PopulatePopup is not null )
+			PopulatePopup( scroll.Canvas );
+
+		_popupMenu.Position = ScreenRect.BottomLeft;
+		_popupMenu.Visible = true;
+
+		_popupMenu.AdjustSize();
+		_popupMenu.ConstrainToScreen();
 	}
 
 	protected override void OnPaint()
@@ -99,6 +126,76 @@ public class Dropdown : Widget
 		{
 			Paint.SetBrushAndPen( Theme.WidgetBackground );
 			Paint.DrawRect( LocalRect );
+		}
+	}
+}
+
+public class DropdownButton : Widget
+{
+	public Action Clicked;
+
+	public Dropdown Dropdown;
+
+	public object Value;
+
+	public string Text;
+
+	public string Icon = "layers";
+
+	public DropdownButton( Dropdown dropdown, string title = null )
+	{
+		Dropdown = dropdown;
+		Cursor = CursorShape.Finger;
+
+		Layout = Layout.Row();
+		Layout.Alignment = TextFlag.LeftCenter;
+		Layout.Margin = 8;
+		Layout.Spacing = 8;
+
+		var icon = new IconButton( Icon );
+		icon.Background = Color.Transparent;
+		icon.Foreground = Theme.ControlText;
+		icon.IconSize = 20;
+
+		Layout.Add( icon );
+
+		Text = title;
+		Layout.Add( new Label( title ) );
+	}
+
+	protected override void OnMouseClick( MouseEvent e )
+	{
+		base.OnMouseClick( e );
+
+		if ( Clicked is not null )
+			Clicked();
+
+		Dropdown.Value = Value;
+		Dropdown.Text = Text;
+		Dropdown.Icon = Icon;
+		Dropdown.ClosePopup();
+	}
+
+	protected override void OnPaint()
+	{
+		base.OnPaint();
+
+		Rect rect = LocalRect;
+		rect = rect.Shrink(2f);
+
+		Paint.SetBrushAndPen( Theme.ControlBackground );
+		Paint.DrawRect( LocalRect );
+
+		if ( Paint.HasMouseOver )
+		{
+			Paint.SetBrushAndPen( Theme.WidgetBackground );
+			Paint.DrawRect( rect );
+		}
+
+		if ( Value == Dropdown.Value )
+		{
+			Paint.SetBrushAndPen( Theme.Blue.WithAlpha( 0.3f ) );
+			Paint.DrawRect( rect );
 		}
 	}
 }
