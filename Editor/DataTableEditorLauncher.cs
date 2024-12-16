@@ -79,7 +79,7 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 
 	private void OpenEditor()
 	{
-		DataTableEditor editor = new(_asset);
+		DataTableEditor editor = new(_asset, _dataTable);
 		Close();
 	}
 

@@ -1,11 +1,6 @@
-using System.IO;
-using System.Linq;
 using DataTables;
 using Editor;
 using Sandbox;
-using Sandbox.UI;
-using Button = Editor.Button;
-using Label = Editor.Label;
 
 namespace DataTablesEditor;
 
@@ -14,10 +9,12 @@ public class DataTableEditor : DockWindow
 	public bool CanOpenMultipleAssets => false;
 
 	private Asset _asset;
+	private DataTable _dataTable;
 
-	public DataTableEditor( Asset asset )
+	public DataTableEditor( Asset asset, DataTable dataTable )
 	{
 		_asset = asset;
+		_dataTable = dataTable;
 
 		DeleteOnClose = true;
 
@@ -26,6 +23,13 @@ public class DataTableEditor : DockWindow
 		SetWindowIcon( "equalizer" );
 
 		Show();
+	}
+
+	[Shortcut( "editor.save", "CTRL+S", ShortcutType.Window )]
+	private void Save()
+	{
+		_dataTable.StructEntries.Add( new TechJamRowStruct() { RowNumber = 5 } );
+		_asset.SaveToDisk( _dataTable );
 	}
 
 	public override void SetWindowIcon( string name )
