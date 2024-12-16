@@ -3,6 +3,7 @@ using DataTables;
 using Editor;
 using Sandbox;
 using Sandbox.UI;
+using Button = Editor.Button;
 using Label = Editor.Label;
 
 namespace DataTablesEditor;
@@ -13,6 +14,17 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 	public bool CanOpenMultipleAssets => false;
 
 	public DataTableEditorLauncher()
+	{
+	}
+
+	protected override void OnPaint()
+	{
+		Paint.ClearPen();
+		Paint.SetBrush( Theme.WindowBackground );
+		Paint.DrawRect( LocalRect );
+	}
+
+	private void FillLayout()
 	{
 		DeleteOnClose = true;
 
@@ -25,6 +37,8 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 		Layout.Spacing = 8;
 
 		var dropdown = new Dropdown();
+		dropdown.Icon = "layers_clear";
+		dropdown.Text = "None";
 		dropdown.PopulatePopup = widget =>
 		{
 			var structTypes = TypeLibrary.GetTypes().Where( x => x.TargetType.IsSubclassOf( typeof(RowStruct) ) );
@@ -42,22 +56,38 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 		Layout.AddStretchCell();
 		Layout.Add( lbl );
 		Layout.Add( dropdown );
+
+		var row = Layout.AddRow();
+		row.AddStretchCell();
+
+		var confirmBtn = new Button.Primary( "Confirm", icon: "done" );
+		confirmBtn.Clicked = () =>
+		{
+			OpenEditor();
+		};
+		row.Add( confirmBtn );
+
 		Layout.AddStretchCell();
 
 		Show();
 	}
 
-	protected override void OnPaint()
+	private void OpenEditor()
 	{
-		Paint.ClearPen();
-		Paint.SetBrush( Theme.WindowBackground );
-		Paint.DrawRect( LocalRect );
+		DataTableEditor editor = new();
+		Close();
 	}
 
 	public void AssetOpen( Asset asset )
 	{
-		/*DataTableEditor editor = new();
-		Close();*/
+		if ( true )
+		{
+			FillLayout();
+		}
+		else
+		{
+			OpenEditor();
+		}
 	}
 
 	public void SelectMember( string memberName )
