@@ -21,7 +21,6 @@ public class Dropdown : Widget
 		{
 			if ( _labelIcon.IsValid() )
 			{
-				Log.Info( value );
 				_labelIcon.Icon = value;
 				Rebuild();
 			}
