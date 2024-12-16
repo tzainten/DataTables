@@ -40,7 +40,7 @@ public static class Json
 		}
 	}
 
-	public static void SerializeObject( Utf8JsonWriter writer, object value, bool annotateType = false )
+	public static void SerializeObject( Utf8JsonWriter writer, object value, bool annotateType = false, Action<Utf8JsonWriter> tailWrite = null )
 	{
 		writer.WriteStartObject();
 
@@ -48,6 +48,10 @@ public static class Json
 			writer.WriteString( "__type", value.GetType().FullName );
 
 		SerializeProperties( writer, value, true );
+
+		if ( tailWrite is not null )
+			tailWrite( writer );
+
 		writer.WriteEndObject();
 	}
 
@@ -93,12 +97,12 @@ public static class Json
 		}
 	}
 
-	public static string Serialize( object target )
+	public static string Serialize( object target, Action<Utf8JsonWriter> tailWrite = null )
 	{
 		using MemoryStream stream = new();
 		using Utf8JsonWriter writer = new(stream, new JsonWriterOptions() { Indented = true });
 
-		SerializeObject( writer, target );
+		SerializeObject( writer, target, tailWrite: tailWrite );
 
 		writer.Flush();
 		return Encoding.UTF8.GetString( stream.ToArray() );
