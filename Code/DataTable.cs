@@ -1,8 +1,16 @@
+using System.Collections.Generic;
 using Sandbox;
 
 namespace DataTables;
 
+public class RowStruct
+{
+}
+
 [GameResource( "Data Table", "dt", "Description", Icon = "equalizer", IconBgColor = "lime", Category = "Ignition" )]
 public class DataTable : GameResource
 {
+	[Hide] public string StructType { get; set; }
+
+	[Hide] public List<RowStruct> StructEntries { get; set; } = new();
 }
