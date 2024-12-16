@@ -12,6 +12,8 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 
 	private Asset _asset;
 
+	private DataTable _dataTable;
+
 	public DataTableEditorLauncher()
 	{
 	}
@@ -36,7 +38,7 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 		Layout.Spacing = 8;
 
 		var dropdown = new Dropdown();
-		dropdown.Icon = "layers_clear";
+		dropdown.Icon = "error";
 		dropdown.Text = "None";
 		dropdown.PopulatePopup = widget =>
 		{
@@ -46,6 +48,7 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 			{
 				var btn = new DropdownButton( dropdown, structType.Name );
 				btn.Value = structType;
+				btn.Icon = "account_tree";
 				widget.Layout.Add( btn );
 			}
 		};
@@ -62,10 +65,9 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 		var confirmBtn = new Button.Primary( "Confirm", icon: "done" );
 		confirmBtn.Clicked = () =>
 		{
-			DataTable dataTable = new();
 			var type = dropdown.Value as TypeDescription;
-			dataTable.StructType = type.FullName;
-			_asset.SaveToDisk( dataTable );
+			_dataTable.StructType = type.FullName;
+			_asset.SaveToDisk( _dataTable );
 			OpenEditor();
 		};
 		row.Add( confirmBtn );
@@ -77,15 +79,16 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 
 	private void OpenEditor()
 	{
-		DataTableEditor editor = new();
+		DataTableEditor editor = new(_asset);
 		Close();
 	}
 
 	public void AssetOpen( Asset asset )
 	{
 		_asset = asset;
+		_dataTable = asset.LoadResource<DataTable>();
 
-		if ( true )
+		if ( _dataTable.StructType is null )
 		{
 			FillLayout();
 		}

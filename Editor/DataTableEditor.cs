@@ -13,8 +13,12 @@ public class DataTableEditor : DockWindow
 {
 	public bool CanOpenMultipleAssets => false;
 
-	public DataTableEditor()
+	private Asset _asset;
+
+	public DataTableEditor( Asset asset )
 	{
+		_asset = asset;
+
 		DeleteOnClose = true;
 
 		Size = new Vector2( 1000, 800 );

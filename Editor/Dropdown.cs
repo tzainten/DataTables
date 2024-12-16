@@ -139,9 +139,22 @@ public class DropdownButton : Widget
 
 	public string Text;
 
-	public string Icon = "layers";
+	private IconButton _iconButton;
 
-	public DropdownButton( Dropdown dropdown, string title = null )
+	public string Icon
+	{
+		set
+		{
+			if ( _iconButton.IsValid() )
+				_iconButton.Icon = value;
+		}
+		get
+		{
+			return _iconButton?.Icon;
+		}
+	}
+
+	public DropdownButton( Dropdown dropdown, string title = null, string icon = null )
 	{
 		Dropdown = dropdown;
 		Cursor = CursorShape.Finger;
@@ -151,12 +164,14 @@ public class DropdownButton : Widget
 		Layout.Margin = 8;
 		Layout.Spacing = 8;
 
-		var icon = new IconButton( Icon );
-		icon.Background = Color.Transparent;
-		icon.Foreground = Theme.ControlText;
-		icon.IconSize = 20;
+		Icon = icon ?? "layers";
 
-		Layout.Add( icon );
+		_iconButton = new IconButton( Icon );
+		_iconButton.Background = Color.Transparent;
+		_iconButton.Foreground = Theme.ControlText;
+		_iconButton.IconSize = 20;
+
+		Layout.Add( _iconButton );
 
 		Text = title;
 		Layout.Add( new Label( title ) );
