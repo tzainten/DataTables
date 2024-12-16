@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 using DataTables;
 using Editor;
 using Sandbox;
@@ -45,8 +48,15 @@ public class DataTableEditor : DockWindow
 	[Shortcut( "editor.save", "CTRL+S", ShortcutType.Window )]
 	private void Save()
 	{
-		_dataTable.StructEntries.Add( new TechJamRowStruct() { RowNumber = 5 } );
-		_asset.SaveToDisk( _dataTable );
+		var json = Json.Serialize( _dataTable, writer =>
+		{
+			writer.WritePropertyName( "__references" );
+			Json.SerializeArray( writer, new List<string>() );
+
+			writer.WritePropertyName( "__version" );
+			writer.WriteNumberValue( _dataTable.ResourceVersion );
+		} );
+		File.WriteAllText( _asset.AbsolutePath, json );
 	}
 
 	public override void SetWindowIcon( string name )
