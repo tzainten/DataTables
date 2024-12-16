@@ -104,7 +104,148 @@ public static class Json
 
 		SerializeObject( writer, target, tailWrite: tailWrite );
 
+		_currentProperty = null;
 		writer.Flush();
 		return Encoding.UTF8.GetString( stream.ToArray() );
+	}
+
+	public static T Deserialize<T>( string json )
+	{
+		Utf8JsonReader reader = new(Encoding.UTF8.GetBytes( json ),
+			new()
+			{
+				AllowTrailingCommas = false,
+				CommentHandling = JsonCommentHandling.Skip
+			});
+
+		JsonObject obj = Sandbox.Json.ParseToJsonObject( ref reader );
+		if ( obj is null )
+			return default;
+
+		_currentProperty = null;
+		return (T)DeserializeObject( obj, TypeLibrary.GetType( typeof(T) ) );
+	}
+
+	public static object DeserializeObject( JsonObject target, TypeDescription targetType = null )
+	{
+		target.TryGetPropertyValue( "__type", out var __type );
+
+		TypeDescription type = null;
+		object instance = null;
+
+		if ( _currentProperty is not null )
+		{
+			if ( __type is not null )
+			{
+				type = TypeLibrary.GetType( __type.GetValue<string>() );
+
+				if ( type.IsGenericType )
+				{
+					var listType = TypeLibrary.GetGenericArguments( _currentProperty.PropertyType ).FirstOrDefault();
+					bool isValidType = type.TargetType == listType || type.TargetType.IsSubclassOf( listType );
+					if ( !isValidType )
+					{
+						Log.Error( "Invalid List Type!" );
+						return null;
+					}
+				}
+			}
+
+			if ( type is null )
+			{
+				if ( _currentProperty.PropertyType.IsGenericType )
+				{
+					type = TypeLibrary.GetType( TypeLibrary.GetGenericArguments( _currentProperty.PropertyType )
+						.FirstOrDefault() );
+				}
+				else
+				{
+					type = TypeLibrary.GetType( _currentProperty.PropertyType );
+				}
+			}
+		}
+		else
+		{
+			type = targetType;
+		}
+
+		instance = TypeLibrary.Create<object>( type.TargetType );
+
+		using var enumerator = target.GetEnumerator();
+		while ( enumerator.MoveNext() )
+		{
+			var pair = enumerator.Current;
+
+			var value = pair.Value;
+			if ( value is null )
+				continue;
+
+			var property = type.GetProperty( pair.Key );
+			if ( property is null )
+				continue;
+
+			_currentProperty = property;
+
+			switch ( value.GetValueKind() )
+			{
+				case JsonValueKind.String:
+					property.SetValue( instance, value.GetValue<string>() );
+					break;
+				case JsonValueKind.False:
+				case JsonValueKind.True:
+					property.SetValue( instance, value.GetValue<bool>() );
+					break;
+				case JsonValueKind.Number:
+					property.SetValue( instance, value.GetValue<double>() );
+					break;
+				case JsonValueKind.Array:
+					IList list = (IList)DeserializeArray( instance, value.AsArray() );
+					property.SetValue( instance, list );
+					break;
+			}
+		}
+
+		return instance;
+	}
+
+	public static object DeserializeArray( object target, JsonArray node )
+	{
+		IList list = null;
+
+		var type = TypeLibrary.GetType( _currentProperty.PropertyType );
+		if ( type.TargetType.IsAssignableTo( typeof(IList) ) )
+		{
+			list = (IList)TypeLibrary.Create<object>( _currentProperty.PropertyType );
+		}
+
+		if ( list is null )
+			return list;
+
+		var enumerator = node.GetEnumerator();
+		while ( enumerator.MoveNext() )
+		{
+			var value = enumerator.Current;
+			switch ( value.GetValueKind() )
+			{
+				case JsonValueKind.Object:
+					var previousProperty = _currentProperty;
+					var obj = DeserializeObject( value.AsObject() );
+					_currentProperty = previousProperty;
+					list.Add( obj );
+					break;
+				case JsonValueKind.String:
+					list.Add( value.GetValue<string>() );
+					break;
+				case JsonValueKind.False:
+				case JsonValueKind.True:
+					list.Add( value.GetValue<bool>() );
+					break;
+				case JsonValueKind.Number:
+					list.Add( value.GetValue<double>() );
+					break;
+			}
+		}
+
+		return list;
 	}
 }
