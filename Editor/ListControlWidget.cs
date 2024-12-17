@@ -185,7 +185,6 @@ public class ListControlWidget : ControlWidget
 				{
 					var structTypes = TypeLibrary.GetTypes().Where( x => x.TargetType == ListWidget.ListType || x.TargetType.IsSubclassOf( ListWidget.ListType ) );
 
-					int i = 0;
 					foreach ( var structType in structTypes )
 					{
 						var btn = new DropdownButton( dropdown, structType.Name );
