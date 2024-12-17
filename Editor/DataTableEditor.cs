@@ -77,11 +77,17 @@ public class DataTableEditor : DockWindow
 		splitter.IsVertical = true;
 
 		var sheetCanvas = new Widget();
-		sheetCanvas.Layout = Layout.Column();
+		sheetCanvas.Layout = Layout.Row();
 		sheetCanvas.MinimumHeight = 300;
 
 		var sheet = new ControlSheet();
-		sheetCanvas.Layout.Add( sheet );
+		sheetCanvas.Layout.AddStretchCell();
+		var _col = new Widget();
+		_col.MinimumWidth = 800;
+		_col.Layout = Layout.Column();
+		_col.Layout.Add( sheet );
+		_col.Layout.AddStretchCell();
+		sheetCanvas.Layout.Add( _col );
 		sheetCanvas.Layout.AddStretchCell();
 		sheetCanvas.OnPaintOverride = () =>
 		{
