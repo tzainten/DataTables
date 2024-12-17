@@ -92,6 +92,13 @@ public class DataTableEditor : DockWindow
 			return false;
 		};
 
+		if ( _internalEntries.Count > 0 )
+		{
+			_tableView.ListView.Selection.Add( _internalEntries[0] );
+			sheet.Clear( true );
+			sheet.AddObject( _internalEntries[0].GetSerialized() );
+		}
+
 		_tableView.ItemClicked = o =>
 		{
 			sheet.Clear( true );
