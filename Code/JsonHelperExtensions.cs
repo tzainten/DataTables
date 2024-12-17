@@ -11,6 +11,7 @@ public enum ObjectType
 	Object,
 	String,
 	Array,
+	Dictionary,
 	Boolean,
 	Unknown
 }
@@ -57,6 +58,11 @@ public static class JsonHelperExtensions
 		return o is IList;
 	}
 
+	public static bool IsDictionary( this object o )
+	{
+		return o is IDictionary;
+	}
+
 	public static bool IsBoolean( this object o )
 	{
 		return o is bool;
@@ -69,6 +75,9 @@ public static class JsonHelperExtensions
 
 		if ( o.IsArray() )
 			return ObjectType.Array;
+
+		if ( o.IsDictionary() )
+			return ObjectType.Dictionary;
 
 		if ( o.IsObject() )
 			return ObjectType.Object;

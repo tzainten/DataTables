@@ -35,6 +35,9 @@ public static class Json
 			case ObjectType.Array:
 				SerializeArray( writer, value as IList );
 				break;
+			case ObjectType.Dictionary:
+				SerializeDictionary( writer, value as IDictionary );
+				break;
 			case ObjectType.Unknown:
 				throw new Exception( "Unknown object type." );
 		}
@@ -55,11 +58,11 @@ public static class Json
 		writer.WriteEndObject();
 	}
 
-	public static void SerializeArray( Utf8JsonWriter writer, IEnumerable value )
+	public static void SerializeArray( Utf8JsonWriter writer, IEnumerable array )
 	{
 		writer.WriteStartArray();
 
-		foreach ( var elem in value )
+		foreach ( var elem in array )
 		{
 			if ( elem is null )
 				continue;
@@ -72,6 +75,23 @@ public static class Json
 		}
 
 		writer.WriteEndArray();
+	}
+
+	public static void SerializeDictionary( Utf8JsonWriter writer, IDictionary dictionary )
+	{
+		writer.WriteStartObject();
+
+		foreach ( var key in dictionary.Keys )
+		{
+			if ( key is null )
+				continue;
+
+			var value = dictionary[key];
+			writer.WritePropertyName( key.ToString() );
+			SerializeProperty( writer, value );
+		}
+
+		writer.WriteEndObject();
 	}
 
 	public static void SerializeProperties( Utf8JsonWriter writer, object target, bool genericCheck = false )
@@ -102,7 +122,10 @@ public static class Json
 		using MemoryStream stream = new();
 		using Utf8JsonWriter writer = new(stream, new JsonWriterOptions() { Indented = true });
 
-		SerializeObject( writer, target, tailWrite: tailWrite );
+		if ( target.GetObjectType() == ObjectType.Object )
+			SerializeObject( writer, target, tailWrite: tailWrite );
+		else
+			SerializeProperty( writer, target );
 
 		_currentProperty = null;
 		writer.Flush();
