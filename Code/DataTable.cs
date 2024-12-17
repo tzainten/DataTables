@@ -12,7 +12,7 @@ public class DataTable : GameResource
 {
 	[Hide] public string StructType { get; set; }
 
-	[Hide] public List<RowStruct> StructEntries { get; set; } = new();
+	public Dictionary<string, RowStruct> StructEntries { get; set; } = new();
 
 	private void Fix()
 	{

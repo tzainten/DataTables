@@ -14,6 +14,7 @@ namespace DataTables;
 public static class Json
 {
 	private static PropertyDescription _currentProperty;
+	private static int _depth = 0;
 
 	public static void SerializeProperty( Utf8JsonWriter writer, object value )
 	{
@@ -43,19 +44,21 @@ public static class Json
 		}
 	}
 
-	public static void SerializeObject( Utf8JsonWriter writer, object value, bool annotateType = false, Action<Utf8JsonWriter> tailWrite = null )
+	public static void SerializeObject( Utf8JsonWriter writer, object value, Action<Utf8JsonWriter> tailWrite = null )
 	{
 		writer.WriteStartObject();
 
-		if ( annotateType )
+		if ( _depth > 0 )
 			writer.WriteString( "__type", value.GetType().FullName );
 
+		_depth++;
 		SerializeProperties( writer, value, true );
 
 		if ( tailWrite is not null )
 			tailWrite( writer );
 
 		writer.WriteEndObject();
+		_depth--;
 	}
 
 	public static void SerializeArray( Utf8JsonWriter writer, IEnumerable array )
@@ -68,7 +71,7 @@ public static class Json
 				continue;
 
 			if ( elem.GetObjectType() == ObjectType.Object )
-				SerializeObject( writer, elem, true );
+				SerializeObject( writer, elem );
 			else
 				SerializeProperty( writer, elem );
 		}
@@ -120,6 +123,8 @@ public static class Json
 	{
 		using MemoryStream stream = new();
 		using Utf8JsonWriter writer = new(stream, new JsonWriterOptions() { Indented = true });
+
+		_depth = 0;
 
 		if ( target.GetObjectType() == ObjectType.Object )
 			SerializeObject( writer, target, tailWrite: tailWrite );
@@ -207,6 +212,12 @@ public static class Json
 				continue;
 
 			_currentProperty = property;
+			if ( property.PropertyType.IsAssignableTo( typeof(IDictionary) ) )
+			{
+				IDictionary dictionary = DeserializeDictionary( instance, value.AsObject() );
+				property.SetValue( instance, dictionary );
+				continue;
+			}
 
 			switch ( value.GetValueKind() )
 			{
@@ -230,6 +241,51 @@ public static class Json
 		return instance;
 	}
 
+	private static IDictionary DeserializeDictionary( object instance, JsonObject node )
+	{
+		IDictionary dictionary = null;
+
+		var type = TypeLibrary.GetType( _currentProperty.PropertyType );
+		if ( type.TargetType.IsAssignableTo( typeof(IDictionary) ) )
+		{
+			dictionary = (IDictionary)TypeLibrary.Create<object>( _currentProperty.PropertyType );
+		}
+
+		if ( dictionary is null )
+			return dictionary;
+
+		using var enumerator = node.GetEnumerator();
+		while ( enumerator.MoveNext() )
+		{
+			var pair = enumerator.Current;
+
+			var key = pair.Key;
+			var value = pair.Value;
+
+			switch ( value.GetValueKind() )
+			{
+				case JsonValueKind.Object:
+					var previousProperty = _currentProperty;
+					var obj = DeserializeObject( value.AsObject() );
+					_currentProperty = previousProperty;
+					dictionary.Add( key, obj );
+					break;
+				case JsonValueKind.String:
+					dictionary.Add( key, value.GetValue<string>() );
+					break;
+				case JsonValueKind.False:
+				case JsonValueKind.True:
+					dictionary.Add( key, value.GetValue<bool>() );
+					break;
+				case JsonValueKind.Number:
+					dictionary.Add( key, value.GetValue<double>() );
+					break;
+			}
+		}
+
+		return dictionary;
+	}
+
 	public static object DeserializeArray( object target, JsonArray node )
 	{
 		IList list = null;
@@ -243,7 +299,7 @@ public static class Json
 		if ( list is null )
 			return list;
 
-		var enumerator = node.GetEnumerator();
+		using var enumerator = node.GetEnumerator();
 		while ( enumerator.MoveNext() )
 		{
 			var value = enumerator.Current;
