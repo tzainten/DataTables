@@ -24,6 +24,8 @@ public class DataTableEditor : DockWindow
 
 	private TableView _tableView;
 
+	private ControlSheet _sheet;
+
 	public DataTableEditor( Asset asset, DataTable dataTable )
 	{
 		_asset = asset;
@@ -80,12 +82,12 @@ public class DataTableEditor : DockWindow
 		sheetCanvas.Layout = Layout.Row();
 		sheetCanvas.MinimumHeight = 300;
 
-		var sheet = new ControlSheet();
+		_sheet = new ControlSheet();
 		sheetCanvas.Layout.AddStretchCell();
 		var _col = new Widget();
 		_col.MinimumWidth = 800;
 		_col.Layout = Layout.Column();
-		_col.Layout.Add( sheet );
+		_col.Layout.Add( _sheet );
 		_col.Layout.AddStretchCell();
 		sheetCanvas.Layout.Add( _col );
 		sheetCanvas.Layout.AddStretchCell();
@@ -101,14 +103,14 @@ public class DataTableEditor : DockWindow
 		if ( _internalEntries.Count > 0 )
 		{
 			_tableView.ListView.Selection.Add( _internalEntries[0] );
-			sheet.Clear( true );
-			sheet.AddObject( _internalEntries[0].GetSerialized() );
+			_sheet.Clear( true );
+			_sheet.AddObject( _internalEntries[0].GetSerialized() );
 		}
 
 		_tableView.ItemClicked = o =>
 		{
-			sheet.Clear( true );
-			sheet.AddObject( o.GetSerialized() );
+			_sheet.Clear( true );
+			_sheet.AddObject( o.GetSerialized() );
 		};
 
 		splitter.AddWidget( _tableView );
@@ -132,7 +134,7 @@ public class DataTableEditor : DockWindow
 		_toolBar.AddSeparator();
 		_toolBar.AddOption( "Add", "common/add.png", AddEntry ).StatusTip = "Append a new entry";
 		_toolBar.AddOption( "Duplicate", "common/copy.png" ).StatusTip = "Appends a duplicate of the currently selected entry";
-		_toolBar.AddOption( "Delete", "common/remove.png" ).StatusTip = "Delete the currently selected entry";
+		_toolBar.AddOption( "Delete", "common/remove.png", RemoveEntry ).StatusTip = "Delete the currently selected entry";
 
 		var stretch = new Widget();
 		stretch.HorizontalSizeMode = SizeMode.CanGrow | SizeMode.Expand;
@@ -144,11 +146,26 @@ public class DataTableEditor : DockWindow
 		_toolBar.AddWidget( dropdown );
 	}
 
+	private void RemoveEntry()
+	{
+		var selection = _tableView.ListView.Selection.First();
+		_internalEntries.Remove( selection as RowStruct );
+		_tableView.ListView.RemoveItem( selection );
+
+		_sheet.Clear( true );
+	}
+
 	private void AddEntry()
 	{
 		var o = TypeLibrary.Create<RowStruct>( _dataTable.StructType );
 		_internalEntries.Add( o );
 		_tableView.AddItem( o );
+
+		_tableView.ListView.Selection.Clear();
+		_tableView.ListView.Selection.Add( o );
+
+		_sheet.Clear( true );
+		_sheet.AddObject( o.GetSerialized() );
 	}
 
 	[Shortcut( "editor.save", "CTRL+S", ShortcutType.Window )]
