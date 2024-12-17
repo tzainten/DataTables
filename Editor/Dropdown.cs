@@ -118,13 +118,19 @@ public class Dropdown : Widget
 	{
 		base.OnPaint();
 
-		Paint.SetBrushAndPen( Theme.ButtonDefault.WithAlpha( 0.2f ) );
-		Paint.DrawRect( LocalRect );
-
+		Paint.ClearPen();
 		if ( Paint.HasMouseOver )
 		{
-			Paint.SetBrushAndPen( Theme.WidgetBackground );
-			Paint.DrawRect( LocalRect );
+			Paint.SetPen( Color.Lerp( ControlWidget.ControlColor, ControlWidget.ControlHighlightPrimary, 0.6f ),
+				1f );
+			Paint.SetBrush(
+				Color.Lerp( ControlWidget.ControlColor, ControlWidget.ControlHighlightPrimary, 0.2f ) );
+			Paint.DrawRect( LocalRect.Shrink( 1f ), ControlWidget.ControlRadius );
+		}
+		else
+		{
+			Paint.SetBrush( ControlWidget.ControlColor );
+			Paint.DrawRect( LocalRect, ControlWidget.ControlRadius );
 		}
 	}
 }

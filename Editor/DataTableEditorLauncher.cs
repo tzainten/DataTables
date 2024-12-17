@@ -18,13 +18,6 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 	{
 	}
 
-	protected override void OnPaint()
-	{
-		Paint.ClearPen();
-		Paint.SetBrush( Theme.WindowBackground );
-		Paint.DrawRect( LocalRect );
-	}
-
 	private void FillLayout()
 	{
 		DeleteOnClose = true;
@@ -101,6 +94,13 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 	public void SelectMember( string memberName )
 	{
 		throw new System.NotImplementedException();
+	}
+
+	protected override void OnPaint()
+	{
+		Paint.ClearPen();
+		Paint.SetBrush( Theme.WidgetBackground );
+		Paint.DrawRect( LocalRect );
 	}
 
 	public override void SetWindowIcon( string name )
