@@ -36,8 +36,9 @@ public class DataTableEditor : DockWindow
 		var json = Json.Serialize( _dataTable, writer =>
 		{
 			writer.WritePropertyName( "__references" );
-			Json.SerializeArray( writer, new List<string>() );
 
+			var references = _asset.GetReferences( false );
+			Json.SerializeArray( writer, references.Select( x => x.Path ) );
 			writer.WritePropertyName( "__version" );
 			writer.WriteNumberValue( _dataTable.ResourceVersion );
 		} );
