@@ -5,6 +5,7 @@ namespace DataTables;
 
 public class RowStruct
 {
+	public string RowName { get; set; } = "Hello";
 }
 
 [GameResource( "Data Table", "dt", "Description", Icon = "equalizer", IconBgColor = "lime", Category = "Ignition" )]
@@ -12,7 +13,7 @@ public class DataTable : GameResource
 {
 	[Hide] public string StructType { get; set; }
 
-	public Dictionary<string, RowStruct> StructEntries { get; set; } = new();
+	[Hide] public List<RowStruct> StructEntries { get; set; } = new();
 
 	private void Fix()
 	{
