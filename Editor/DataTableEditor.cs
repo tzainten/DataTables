@@ -17,6 +17,7 @@ public class DataTableEditor : DockWindow
 
 	private Asset _asset;
 	private DataTable _dataTable;
+	private TypeDescription _structType;
 
 	private ToolBar _toolBar;
 
@@ -26,10 +27,13 @@ public class DataTableEditor : DockWindow
 
 	private ControlSheet _sheet;
 
+	private Splitter _splitter;
+
 	public DataTableEditor( Asset asset, DataTable dataTable )
 	{
 		_asset = asset;
 		_dataTable = dataTable;
+		_structType = TypeLibrary.GetType( dataTable.StructType );
 		_internalEntries = _dataTable.StructEntries;
 
 		DeleteOnClose = true;
@@ -44,10 +48,50 @@ public class DataTableEditor : DockWindow
 		Canvas.Layout = Layout.Column();
 		var layout = Canvas.Layout;
 
-		_tableView = new TableView( Canvas );
-		_tableView.MinimumHeight = 200;
+		_splitter = new(this);
+		_splitter.IsVertical = true;
+
+		Show();
+		PopulateEditor();
+	}
+
+	[EditorEvent.Hotload]
+	private void PopulateEditor()
+	{
+		if ( !Visible )
+			return;
+
+		if ( _splitter is not null && _splitter.IsValid )
+			_splitter.DestroyChildren();
+
+		var sheetCanvas = new Widget();
+		sheetCanvas.Layout = Layout.Row();
+		sheetCanvas.MinimumHeight = 300;
+
+		_sheet = new ControlSheet();
+		sheetCanvas.Layout.AddStretchCell();
+		var _col = new Widget();
+		_col.MinimumWidth = 800;
+		_col.Layout = Layout.Column();
+		_col.Layout.Add( _sheet );
+		_col.Layout.AddStretchCell();
+		sheetCanvas.Layout.Add( _col );
+		sheetCanvas.Layout.AddStretchCell();
+		sheetCanvas.OnPaintOverride = () =>
+		{
+			Paint.ClearPen();
+			Paint.SetBrush( Theme.WidgetBackground );
+			Paint.DrawRect( sheetCanvas.LocalRect );
+
+			return false;
+		};
 
 		var structType = TypeLibrary.GetType( _dataTable.StructType );
+		if ( structType is null )
+			return;
+
+		_tableView = new TableView( Canvas );
+		_tableView.MinimumHeight = 200;
 
 		var rowNameCol = _tableView.AddColumn();
 		rowNameCol.Name = "RowName";
@@ -75,31 +119,6 @@ public class DataTableEditor : DockWindow
 		_tableView.SetItems( _internalEntries.ToList() );
 		_tableView.FillHeader();
 
-		Splitter splitter = new(this);
-		splitter.IsVertical = true;
-
-		var sheetCanvas = new Widget();
-		sheetCanvas.Layout = Layout.Row();
-		sheetCanvas.MinimumHeight = 300;
-
-		_sheet = new ControlSheet();
-		sheetCanvas.Layout.AddStretchCell();
-		var _col = new Widget();
-		_col.MinimumWidth = 800;
-		_col.Layout = Layout.Column();
-		_col.Layout.Add( _sheet );
-		_col.Layout.AddStretchCell();
-		sheetCanvas.Layout.Add( _col );
-		sheetCanvas.Layout.AddStretchCell();
-		sheetCanvas.OnPaintOverride = () =>
-		{
-			Paint.ClearPen();
-			Paint.SetBrush( Theme.WidgetBackground );
-			Paint.DrawRect( sheetCanvas.LocalRect );
-
-			return false;
-		};
-
 		if ( _internalEntries.Count > 0 )
 		{
 			_tableView.ListView.Selection.Add( _internalEntries[0] );
@@ -113,14 +132,12 @@ public class DataTableEditor : DockWindow
 			_sheet.AddObject( o.GetSerialized() );
 		};
 
-		splitter.AddWidget( _tableView );
-		splitter.AddWidget( sheetCanvas );
-		splitter.SetCollapsible( 0, false );
-		splitter.SetCollapsible( 1, false );
+		_splitter.AddWidget( _tableView );
+		_splitter.AddWidget( sheetCanvas );
+		_splitter.SetCollapsible( 0, false );
+		_splitter.SetCollapsible( 1, false );
 
-		layout.Add( splitter );
-
-		Show();
+		Canvas.Layout.Add( _splitter );
 	}
 
 	private void AddToolbar()

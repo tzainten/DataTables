@@ -202,7 +202,6 @@ internal class TableView : Widget
 			Header = null;
 		}
 
-		private int splitterCount = 0;
 		public void AddColumn( Column column )
 		{
 			Labels.Add( _splitter.AddColumn( column ) );
