@@ -67,8 +67,7 @@ public static class Json
 			if ( elem is null )
 				continue;
 
-			TypeDescription type = TypeLibrary.GetType( elem.GetType().FullName );
-			if ( type.Properties.Length > 0 )
+			if ( elem.GetObjectType() == ObjectType.Object )
 				SerializeObject( writer, elem, true );
 			else
 				SerializeProperty( writer, elem );
