@@ -81,7 +81,8 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 		_asset = asset;
 		_dataTable = asset.LoadResource<DataTable>();
 
-		if ( _dataTable.StructType is null )
+		var type = TypeLibrary.GetType( _dataTable.StructType );
+		if ( type is null || !TypeLibrary.GetTypes().Any( x => x.TargetType.IsSubclassOf( typeof(RowStruct) ) ) )
 		{
 			FillLayout();
 		}
