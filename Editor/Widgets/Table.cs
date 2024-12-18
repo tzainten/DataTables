@@ -75,6 +75,7 @@ internal class TableView : Widget
 				ItemClicked( o );
 		};
 		ListView.Margin = new Margin( 0, 4, 0, 0 );
+		ListView.MultiSelect = true;
 
 		Layout = Layout.Column();
 		Layout.Add( Header = new TableHeader( this ) );

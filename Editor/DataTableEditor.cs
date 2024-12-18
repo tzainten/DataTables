@@ -176,44 +176,50 @@ public class DataTableEditor : DockWindow
 
 	private void DuplicateEntry()
 	{
-		if ( _tableView.ListView.Selection.Count == 0 )
-			return;
+		List<object> newSelections = new();
+		foreach ( var selection in _tableView.ListView.Selection )
+		{
+			var row = selection as RowStruct;
+			var o = TypeLibrary.Clone<RowStruct>( row );
+			o.RowName = $"NewEntry_{_dataTable.EntryCount++}";
 
-		var selection = _tableView.ListView.Selection.First() as RowStruct;
+			_internalEntries.Add( o );
+			_tableView.AddItem( o );
 
-		var o = TypeLibrary.Clone<RowStruct>( selection );
-		o.RowName = $"NewEntry_{_dataTable.EntryCount++}";
+			_sheet.Clear( true );
+			_sheet.AddObject( o.GetSerialized() );
 
-		_internalEntries.Add( o );
-		_tableView.AddItem( o );
+			newSelections.Add( o );
+		}
 
 		_tableView.ListView.Selection.Clear();
-		_tableView.ListView.Selection.Add( o );
-
-		_sheet.Clear( true );
-		_sheet.AddObject( o.GetSerialized() );
-
-		_tableView.ListView.ScrollTo( o );
+		foreach ( var newSelection in newSelections )
+		{
+			_tableView.ListView.Selection.Add( newSelection );
+			_tableView.ListView.ScrollTo( newSelection );
+		}
 	}
 
 	private void RemoveEntry()
 	{
-		if ( _tableView.ListView.Selection.Count == 0 )
-			return;
-
-		var selection = _tableView.ListView.Selection.First() as RowStruct;
-		_tableView.ListView.RemoveItem( selection );
 		_sheet.Clear( true );
 
+		var index = -1;
+		foreach ( var selection in _tableView.ListView.Selection )
+		{
+			var row = selection as RowStruct;
+
+			var tuple = _internalEntries.Index().First( x => x.Item.RowName == row.RowName );
+			index = tuple.Index - 1;
+
+			_tableView.ListView.RemoveItem( selection );
+			_internalEntries.Remove( row );
+		}
+
 		_tableView.ListView.Selection.Clear();
-		var tuple = _internalEntries.Index().First( x => x.Item.RowName == selection.RowName );
 
-		_internalEntries.Remove( selection );
-
-		var index = tuple.Index - 1;
 		if ( index < 0 )
 			index = 0;
-
 		if ( index < _internalEntries.Count )
 		{
 			_tableView.ListView.Selection.Add( _internalEntries[index] );
