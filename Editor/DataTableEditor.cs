@@ -39,7 +39,7 @@ public class DataTableEditor : DockWindow
 		DeleteOnClose = true;
 
 		Size = new Vector2( 1000, 800 );
-		Title = "Data Table Editor";
+		Title = $"Data Table Editor - {asset.Path}";
 		SetWindowIcon( "equalizer" );
 
 		AddToolbar();
