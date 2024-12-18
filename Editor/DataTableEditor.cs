@@ -153,14 +153,14 @@ public class DataTableEditor : DockWindow
 		_toolBar.AddOption( "Duplicate", "common/copy.png" ).StatusTip = "Appends a duplicate of the currently selected entry";
 		_toolBar.AddOption( "Delete", "common/remove.png", RemoveEntry ).StatusTip = "Delete the currently selected entry";
 
-		var stretch = new Widget();
+		/*var stretch = new Widget();
 		stretch.HorizontalSizeMode = SizeMode.CanGrow | SizeMode.Expand;
 		_toolBar.AddWidget( stretch );
 
 		var dropdown = new Dropdown( _dataTable.StructType );
 		dropdown.FixedWidth = 200;
 		dropdown.Icon = "account_tree";
-		_toolBar.AddWidget( dropdown );
+		_toolBar.AddWidget( dropdown );*/
 	}
 
 	private void RemoveEntry()
