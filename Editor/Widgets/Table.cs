@@ -186,7 +186,7 @@ internal class TableView : Widget
 			foreach ( var Header in _headers )
 			{
 				if ( Header is null || !Header.IsValid )
-					return;
+					continue;
 
 				var list = Header._splitter.Labels;
 				for ( int i = 0; i < list.Count; i++ )
