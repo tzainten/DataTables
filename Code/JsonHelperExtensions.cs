@@ -18,7 +18,7 @@ public enum ObjectType
 
 public static class JsonHelperExtensions
 {
-	public static bool IsNumber( this object o )
+	private static bool IsNumber( this object o )
 	{
 		switch ( Type.GetTypeCode( o.GetType() ) )
 		{
@@ -39,9 +39,9 @@ public static class JsonHelperExtensions
 		}
 	}
 
-	public static bool IsObject( this object o ) => Type.GetTypeCode( o.GetType() ) == TypeCode.Object;
+	private static bool IsObject( this object o ) => Type.GetTypeCode( o.GetType() ) == TypeCode.Object;
 
-	public static bool IsString( this object o )
+	private static bool IsString( this object o )
 	{
 		switch ( Type.GetTypeCode( o.GetType() ) )
 		{
@@ -53,17 +53,17 @@ public static class JsonHelperExtensions
 		}
 	}
 
-	public static bool IsArray( this object o )
+	private static bool IsArray( this object o )
 	{
 		return o is IList;
 	}
 
-	public static bool IsDictionary( this object o )
+	private static bool IsDictionary( this object o )
 	{
 		return o is IDictionary;
 	}
 
-	public static bool IsBoolean( this object o )
+	private static bool IsBoolean( this object o )
 	{
 		return o is bool;
 	}
