@@ -173,23 +173,32 @@ internal class TableView : Widget
 
 		public HeaderSplitter _splitter;
 
-		public static TableHeader Header = null;
+		private int _headerIndex = 0;
+		private static List<TableHeader> _headers;
+
+		static TableHeader()
+		{
+			_headers = new();
+		}
 
 		[EditorEvent.Frame]
 		public static void Frame()
 		{
-			if ( Header is null || !Header.IsValid )
-				return;
-
-			var list = Header._splitter.Labels;
-			for ( int i = 0; i < list.Count; i++ )
+			foreach ( var Header in _headers )
 			{
-				var lbl = list[i];
-				Header.Table.Columns[i].Width = (int)lbl.Width;
+				if ( Header is null || !Header.IsValid )
+					return;
 
-				var _ = new Widget();
-				Header.Table.ListView.AddItem( _ );
-				Header.Table.ListView.RemoveItem( _ );
+				var list = Header._splitter.Labels;
+				for ( int i = 0; i < list.Count; i++ )
+				{
+					var lbl = list[i];
+					Header.Table.Columns[i].Width = (int)lbl.Width;
+
+					var _ = new Widget();
+					Header.Table.ListView.AddItem( _ );
+					Header.Table.ListView.RemoveItem( _ );
+				}
 			}
 		}
 
@@ -203,7 +212,7 @@ internal class TableView : Widget
 			_splitter = new(this);
 			_splitter.IsHorizontal = true;
 
-			Header = this;
+			_headers.Add( this );
 
 			Layout.Add( _splitter );
 		}
@@ -212,7 +221,7 @@ internal class TableView : Widget
 		{
 			base.Close();
 
-			Header = null;
+			_headers.Remove( this );
 		}
 
 		public void AddColumn( Column column )
