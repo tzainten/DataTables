@@ -141,7 +141,7 @@ internal class TableView : Widget
 		Rect rect = widget.Rect;
 
 		Paint.SetDefaultFont();
-		Paint.SetPen( widget.Selected ? Color.Orange : Theme.ControlText );
+		Paint.SetPen( widget.Selected ? Color.White : Theme.ControlText );
 
 		foreach ( var column in Columns )
 		{
