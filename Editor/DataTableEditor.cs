@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using DataTables;
-using DataTablesEditor.Widgets;
 using Editor;
 using Sandbox;
 using Json = DataTables.Json;

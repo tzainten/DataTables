@@ -9,7 +9,7 @@ using Sandbox.UI;
 using Sandbox.VR;
 using Label = Editor.Label;
 
-namespace DataTablesEditor.Widgets;
+namespace DataTablesEditor;
 
 /// <summary>
 /// I am absolutely not proud of this at all.
