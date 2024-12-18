@@ -152,6 +152,19 @@ internal class TableView : Widget
 		}
 	}
 
+	protected override void OnPaint()
+	{
+		base.OnPaint();
+
+		Paint.ClearPen();
+		Paint.SetBrush( Theme.WidgetBackground.WithAlpha( 0.5f ) );
+		Paint.DrawRect( LocalRect );
+
+		Paint.ClearPen();
+		Paint.SetBrush( Theme.WindowBackground );
+		Paint.DrawRect( LocalRect.Shrink( 0, 0, 0, LocalRect.Height - 30 ) );
+	}
+
 	class TableHeader : Widget
 	{
 		readonly TableView Table;
