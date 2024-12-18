@@ -91,6 +91,7 @@ public class DataTableEditor : DockWindow
 		var layout = scroll.Canvas.Layout;
 
 		var sheetCanvas = new Widget( scroll.Canvas );
+		sheetCanvas.MinimumHeight = 200;
 		sheetCanvas.Layout = Layout.Column();
 		sheetCanvas.Layout.AddStretchCell();
 		sheetCanvas.Layout.Add( _sheet );
@@ -200,7 +201,7 @@ public class DataTableEditor : DockWindow
 	private void AddEntry()
 	{
 		var o = TypeLibrary.Create<RowStruct>( _dataTable.StructType );
-		o.RowName = $"NewEntry_{_internalEntries.Count + 1}";
+		o.RowName = $"NewEntry_{_dataTable.EntryCount++}";
 
 		_internalEntries.Add( o );
 		_tableView.AddItem( o );
@@ -217,6 +218,9 @@ public class DataTableEditor : DockWindow
 	[Shortcut( "editor.save", "CTRL+S", ShortcutType.Window )]
 	private void Save()
 	{
+		if ( _internalEntries.Count == 0 )
+			_dataTable.EntryCount = 0;
+
 		_dataTable.StructEntries = _internalEntries;
 		var json = Json.Serialize( _dataTable, writer =>
 		{
