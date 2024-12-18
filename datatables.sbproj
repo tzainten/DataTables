@@ -1,7 +1,13 @@
 {
   "Title": "Data Tables",
   "Type": "library",
-  "Org": "local",
+  "Org": "tzainten",
   "Ident": "datatables",
-  "Schema": 1
+  "Schema": 1,
+  "IncludeSourceFiles": false,
+  "Resources": null,
+  "PackageReferences": [],
+  "EditorReferences": null,
+  "IsWhitelistDisabled": false,
+  "Metadata": {}
 }
