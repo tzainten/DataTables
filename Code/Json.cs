@@ -324,7 +324,11 @@ public static class Json
 					list.Add( value.GetValue<bool>() );
 					break;
 				case JsonValueKind.Number:
-					list.Add( value.GetValue<double>() );
+					var num = value.GetValue<double>();
+					if ( int.TryParse( num.ToString(), out var result ) )
+						list.Add( result );
+					else
+						list.Add( value.GetValue<double>() );
 					break;
 			}
 		}
