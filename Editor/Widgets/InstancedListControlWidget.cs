@@ -10,7 +10,7 @@ namespace DataTablesEditor;
 
 [CustomEditor( typeof(List<>), WithAllAttributes = new[] { typeof(InstancedAttribute) } )]
 [CustomEditor( typeof(System.Array), WithAllAttributes = new[] { typeof(InstancedAttribute) } )]
-public class ListControlWidget : ControlWidget
+public class InstancedListControlWidget : ControlWidget
 {
 	public override bool SupportsMultiEdit => false;
 
@@ -23,7 +23,7 @@ public class ListControlWidget : ControlWidget
 
 	public Type ListType;
 
-	public ListControlWidget( SerializedProperty property )
+	public InstancedListControlWidget( SerializedProperty property )
 		: this( property, GetCollection( property ) )
 	{
 	}
@@ -36,7 +36,7 @@ public class ListControlWidget : ControlWidget
 		return sc;
 	}
 
-	public ListControlWidget( SerializedProperty property, SerializedCollection sc )
+	public InstancedListControlWidget( SerializedProperty property, SerializedCollection sc )
 		: base( property )
 	{
 		Layout = Layout.Column();
@@ -130,12 +130,12 @@ public class ListControlWidget : ControlWidget
 		bool draggingAbove = false;
 		bool draggingBelow = false;
 
-		ListControlWidget ListWidget;
+		InstancedListControlWidget ListWidget;
 		int Index = -1;
 
 		public ControlSheet Sheet;
 
-		public ListEntryWidget( ListControlWidget parent, SerializedProperty property, int index ) : base( parent )
+		public ListEntryWidget( InstancedListControlWidget parent, SerializedProperty property, int index ) : base( parent )
 		{
 			ListWidget = parent;
 			Index = index;
@@ -202,6 +202,8 @@ public class ListControlWidget : ControlWidget
 					}
 				};
 
+				Sheet = new ControlSheet();
+
 				var value = property.GetValue<object>();
 				if ( value is not null )
 				{
@@ -209,7 +211,6 @@ public class ListControlWidget : ControlWidget
 					dropdown.Text = value.GetType().Name;
 					dropdown.Value = value.GetType();
 
-					Sheet = new ControlSheet();
 					Sheet.AddObject( value.GetSerialized() );
 				}
 				else
