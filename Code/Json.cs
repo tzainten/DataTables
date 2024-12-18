@@ -214,7 +214,7 @@ public static class Json
 			_currentProperty = property;
 			if ( property.PropertyType.IsAssignableTo( typeof(IDictionary) ) )
 			{
-				IDictionary dictionary = DeserializeDictionary( instance, value.AsObject() );
+				IDictionary dictionary = DeserializeDictionary( value.AsObject() );
 				property.SetValue( instance, dictionary );
 				continue;
 			}
@@ -232,8 +232,13 @@ public static class Json
 					property.SetValue( instance, value.GetValue<double>() );
 					break;
 				case JsonValueKind.Array:
-					IList list = (IList)DeserializeArray( instance, value.AsArray() );
+					IList list = (IList)DeserializeArray( value.AsArray() );
 					property.SetValue( instance, list );
+					break;
+				case JsonValueKind.Object:
+					var previousProperty = _currentProperty;
+					property.SetValue( instance, DeserializeObject( value.AsObject() ) );
+					_currentProperty = previousProperty;
 					break;
 			}
 		}
@@ -241,7 +246,7 @@ public static class Json
 		return instance;
 	}
 
-	private static IDictionary DeserializeDictionary( object instance, JsonObject node )
+	private static IDictionary DeserializeDictionary( JsonObject node )
 	{
 		IDictionary dictionary = null;
 
@@ -286,7 +291,7 @@ public static class Json
 		return dictionary;
 	}
 
-	public static object DeserializeArray( object target, JsonArray node )
+	public static object DeserializeArray( JsonArray node )
 	{
 		IList list = null;
 
