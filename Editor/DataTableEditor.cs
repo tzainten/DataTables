@@ -186,16 +186,14 @@ public class DataTableEditor : DockWindow
 		_internalEntries.Remove( selection );
 
 		var index = tuple.Index - 1;
+		if ( index < 0 )
+			index = 0;
 
 		if ( index < _internalEntries.Count )
 		{
-			if ( index < 0 )
-				index = 0;
-
-			if ( index < _internalEntries.Count )
-			{
-				_tableView.ListView.Selection.Add( _internalEntries[index] );
-			}
+			_tableView.ListView.Selection.Add( _internalEntries[index] );
+			_sheet.Clear( true );
+			_sheet.AddObject( _internalEntries[index].GetSerialized() );
 		}
 	}
 

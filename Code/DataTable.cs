@@ -15,7 +15,7 @@ public class DataTable : GameResource
 
 	[Hide] public List<RowStruct> StructEntries { get; set; } = new();
 
-	public T Get<T>(string rowName) where T : RowStruct
+	public T Get<T>( string rowName ) where T : RowStruct
 	{
 		return (T)StructEntries.Find( x => x.RowName == rowName );
 	}
