@@ -70,27 +70,34 @@ public class DataTableEditor : DockWindow
 				_internalEntries.RemoveAt( i );
 		}
 
-		var sheetCanvas = new Widget();
-		sheetCanvas.Layout = Layout.Row();
-		sheetCanvas.MinimumHeight = 300;
+		ScrollArea scroll = new ScrollArea( _splitter );
+		scroll.Canvas = new Widget( scroll )
+		{
+			Layout = Layout.Column(),
+			VerticalSizeMode = SizeMode.CanGrow | SizeMode.Expand
+		};
 
-		_sheet = new ControlSheet();
-		sheetCanvas.Layout.AddStretchCell();
-		var _col = new Widget();
-		_col.MinimumWidth = 800;
-		_col.Layout = Layout.Column();
-		_col.Layout.Add( _sheet );
-		_col.Layout.AddStretchCell();
-		sheetCanvas.Layout.Add( _col );
-		sheetCanvas.Layout.AddStretchCell();
-		sheetCanvas.OnPaintOverride = () =>
+		scroll.Canvas.OnPaintOverride = () =>
 		{
 			Paint.ClearPen();
 			Paint.SetBrush( Theme.WidgetBackground );
-			Paint.DrawRect( sheetCanvas.LocalRect );
+			Paint.DrawRect( scroll.Canvas.LocalRect );
 
 			return false;
 		};
+
+		_sheet = new ControlSheet();
+
+		var layout = scroll.Canvas.Layout;
+
+		var sheetCanvas = new Widget( scroll.Canvas );
+		sheetCanvas.Layout = Layout.Column();
+		sheetCanvas.Layout.AddStretchCell();
+		sheetCanvas.Layout.Add( _sheet );
+		sheetCanvas.Layout.AddStretchCell();
+
+		layout.Add( sheetCanvas );
+		layout.AddStretchCell();
 
 		var structType = TypeLibrary.GetType( _dataTable.StructType );
 		if ( structType is null )
@@ -136,7 +143,8 @@ public class DataTableEditor : DockWindow
 		};
 
 		_splitter.AddWidget( _tableView );
-		_splitter.AddWidget( sheetCanvas );
+		//_splitter.AddWidget( scroll.Canvas );
+		_splitter.AddWidget( scroll );
 		_splitter.SetCollapsible( 0, false );
 		_splitter.SetCollapsible( 1, false );
 
