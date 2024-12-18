@@ -157,11 +157,11 @@ public class DataTableEditor : DockWindow
 		AddToolBar( _toolBar, ToolbarPosition.Top );
 
 		_toolBar.Movable = false;
-		_toolBar.AddOption( "Save", "common/save.png" ).StatusTip = "Saves this Data Table to disk";
+		_toolBar.AddOption( "Save", "common/save.png", Save ).StatusTip = "Saves this Data Table to disk";
 		_toolBar.AddOption( "Browse", "common/browse.png" ).StatusTip = "Filler";
 		_toolBar.AddSeparator();
 		_toolBar.AddOption( "Add", "common/add.png", AddEntry ).StatusTip = "Append a new entry";
-		_toolBar.AddOption( "Duplicate", "common/copy.png" ).StatusTip = "Appends a duplicate of the currently selected entry";
+		_toolBar.AddOption( "Duplicate", "common/copy.png", DuplicateEntry ).StatusTip = "Appends a duplicate of the currently selected entry";
 		_toolBar.AddOption( "Delete", "common/remove.png", RemoveEntry ).StatusTip = "Delete the currently selected entry";
 
 		/*var stretch = new Widget();
@@ -174,8 +174,33 @@ public class DataTableEditor : DockWindow
 		_toolBar.AddWidget( dropdown );*/
 	}
 
+	private void DuplicateEntry()
+	{
+		if ( _tableView.ListView.Selection.Count == 0 )
+			return;
+
+		var selection = _tableView.ListView.Selection.First() as RowStruct;
+
+		var o = TypeLibrary.Clone<RowStruct>( selection );
+		o.RowName = $"NewEntry_{_dataTable.EntryCount++}";
+
+		_internalEntries.Add( o );
+		_tableView.AddItem( o );
+
+		_tableView.ListView.Selection.Clear();
+		_tableView.ListView.Selection.Add( o );
+
+		_sheet.Clear( true );
+		_sheet.AddObject( o.GetSerialized() );
+
+		_tableView.ListView.ScrollTo( o );
+	}
+
 	private void RemoveEntry()
 	{
+		if ( _tableView.ListView.Selection.Count == 0 )
+			return;
+
 		var selection = _tableView.ListView.Selection.First() as RowStruct;
 		_tableView.ListView.RemoveItem( selection );
 		_sheet.Clear( true );
