@@ -165,16 +165,34 @@ public class DataTableEditor : DockWindow
 
 	private void RemoveEntry()
 	{
-		var selection = _tableView.ListView.Selection.First();
-		_internalEntries.Remove( selection as RowStruct );
+		var selection = _tableView.ListView.Selection.First() as RowStruct;
 		_tableView.ListView.RemoveItem( selection );
-
 		_sheet.Clear( true );
+
+		_tableView.ListView.Selection.Clear();
+		var tuple = _internalEntries.Index().First( x => x.Item.RowName == selection.RowName );
+
+		_internalEntries.Remove( selection );
+
+		var index = tuple.Index - 1;
+
+		if ( index < _internalEntries.Count )
+		{
+			if ( index < 0 )
+				index = 0;
+
+			if ( index < _internalEntries.Count )
+			{
+				_tableView.ListView.Selection.Add( _internalEntries[index] );
+			}
+		}
 	}
 
 	private void AddEntry()
 	{
 		var o = TypeLibrary.Create<RowStruct>( _dataTable.StructType );
+		o.RowName = $"NewEntry_{_internalEntries.Count + 1}";
+
 		_internalEntries.Add( o );
 		_tableView.AddItem( o );
 
