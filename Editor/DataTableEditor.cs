@@ -64,6 +64,12 @@ public class DataTableEditor : DockWindow
 		if ( _splitter is not null && _splitter.IsValid )
 			_splitter.DestroyChildren();
 
+		for ( int i = _internalEntries.Count - 1; i >= 0; i-- )
+		{
+			if ( _internalEntries[i] is null )
+				_internalEntries.RemoveAt( i );
+		}
+
 		var sheetCanvas = new Widget();
 		sheetCanvas.Layout = Layout.Row();
 		sheetCanvas.MinimumHeight = 300;
@@ -100,20 +106,17 @@ public class DataTableEditor : DockWindow
 			return structType.GetProperty( "RowName" ).GetValue( o )?.ToString() ?? "";
 		};
 
-		int i = 0;
 		foreach ( var property in structType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
 		{
 			if ( property.Name == "RowName" )
 				continue;
 
-			int idx = i;
 			var col = _tableView.AddColumn();
 			col.Name = property.Name;
 			col.Value = o =>
 			{
 				return property.GetValue( o )?.ToString() ?? "";
 			};
-			i++;
 		}
 
 		_tableView.SetItems( _internalEntries.ToList() );
