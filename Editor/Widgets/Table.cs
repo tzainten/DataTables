@@ -173,7 +173,6 @@ internal class TableView : Widget
 
 		public HeaderSplitter _splitter;
 
-		private int _headerIndex = 0;
 		private static List<TableHeader> _headers;
 
 		static TableHeader()
