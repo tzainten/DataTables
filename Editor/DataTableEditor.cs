@@ -201,6 +201,8 @@ public class DataTableEditor : DockWindow
 
 		_sheet.Clear( true );
 		_sheet.AddObject( o.GetSerialized() );
+
+		_tableView.ListView.ScrollTo( o );
 	}
 
 	[Shortcut( "editor.save", "CTRL+S", ShortcutType.Window )]
