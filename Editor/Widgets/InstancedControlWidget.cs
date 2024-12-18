@@ -37,8 +37,6 @@ public class InstancedControlWidget : ControlWidget
 		};
 
 		var value = property.GetValue<object>();
-		Log.Info( value );
-
 		if ( value is not null )
 		{
 			dropdown.Text = value.GetType().Name;
