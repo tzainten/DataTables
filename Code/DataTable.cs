@@ -8,7 +8,7 @@ public class RowStruct
 	public string RowName { get; set; } = "Hello";
 }
 
-[GameResource( "Data Table", "dt", "Description", Icon = "equalizer", IconBgColor = "lime", Category = "Ignition" )]
+[GameResource( "Data Table", "dt", "Description", Icon = "equalizer", IconBgColor = "lime" )]
 public class DataTable : GameResource
 {
 	[Hide] public string StructType { get; set; }
