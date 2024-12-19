@@ -18,13 +18,13 @@ public class DataTable : GameResource
 
 	[Hide] public int EntryCount { get; set; } = 0;
 
-	[Title( "Get Data Table Row - {T|RowStruct}" )]
+	[Title( "Get Row - {T|RowStruct}" )]
 	public T Get<T>( string rowName ) where T : RowStruct
 	{
 		return (T)StructEntries.Find( x => x.RowName == rowName );
 	}
 
-	[Title( "Add Data Table Row - {T|RowStruct}" )]
+	[Title( "Add Row - {T|RowStruct}" )]
 	public bool Add<T>( string rowName, T rowStruct ) where T : RowStruct, new()
 	{
 		if ( StructEntries.Find( x => x.RowName == rowName ) is not null )
