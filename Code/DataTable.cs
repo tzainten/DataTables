@@ -5,7 +5,7 @@ namespace DataTables;
 
 public class RowStruct
 {
-	public string RowName { get; set; } = "Hello";
+	public string RowName { get; set; }
 }
 
 [GameResource( "Data Table", "dt", "Description", Icon = "equalizer", IconBgColor = "#b0e24d" )]
@@ -17,6 +17,7 @@ public class DataTable : GameResource
 
 	[Hide] public int EntryCount { get; set; } = 0;
 
+	[Title( "Get Data Table Row - {T|RowStruct}" )]
 	public T Get<T>( string rowName ) where T : RowStruct
 	{
 		return (T)StructEntries.Find( x => x.RowName == rowName );
