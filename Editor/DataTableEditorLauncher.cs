@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using DataTables;
 using Editor;
@@ -81,7 +82,8 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 	public void AssetOpen( Asset asset )
 	{
 		_asset = asset;
-		_dataTable = Json.Deserialize<DataTable>( FileSystem.Mounted.ReadAllText( asset.Path ) );
+		_dataTable = ResourceLibrary.Get<DataTable>( _asset.Path );
+		_dataTable.Fix();
 
 		var type = TypeLibrary.GetType( _dataTable.StructType );
 		if ( type is null || !TypeLibrary.GetTypes().Any( x => x.TargetType.IsSubclassOf( typeof(RowStruct) ) ) )
