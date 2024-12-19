@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Sandbox;
 
 namespace DataTables;
@@ -23,7 +24,19 @@ public class DataTable : GameResource
 		return (T)StructEntries.Find( x => x.RowName == rowName );
 	}
 
-	private void Fix()
+	[Title( "Add Data Table Row - {T|RowStruct}" )]
+	public bool Add<T>( string rowName, T rowStruct ) where T : RowStruct, new()
+	{
+		if ( StructEntries.Find( x => x.RowName == rowName ) is not null )
+			return false;
+
+		rowStruct.RowName = rowName;
+		StructEntries.Add( rowStruct );
+
+		return true;
+	}
+
+	public void Fix()
 	{
 		var dataTable = Json.Deserialize<DataTable>( FileSystem.Mounted.ReadAllText( ResourcePath ) );
 		StructType = dataTable.StructType;
