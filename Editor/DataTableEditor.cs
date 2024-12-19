@@ -291,8 +291,7 @@ public class DataTableEditor : DockWindow
 		{
 			writer.WritePropertyName( "__references" );
 
-			var references = _asset.GetReferences( false );
-			Json.SerializeArray( writer, references.Select( x => x.Path ) );
+			Json.SerializeArray( writer, _dataTable.GetReferencedPackages() );
 
 			writer.WritePropertyName( "__version" );
 			writer.WriteNumberValue( _dataTable.ResourceVersion );
