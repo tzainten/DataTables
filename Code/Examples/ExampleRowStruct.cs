@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Sandbox;
 
 namespace DataTables;
 
@@ -21,6 +22,9 @@ public class CoolThing2 : Something
 public class ExampleRowStruct : RowStruct
 {
 	public int Number { get; set; }
+
+	[ImageAssetPath]
+	public string ImagePath { get; set; }
 
 	[Instanced]
 	public List<Something> Somethings { get; set; }
