@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -297,6 +298,24 @@ public class DataTableEditor : DockWindow
 			writer.WriteNumberValue( _dataTable.ResourceVersion );
 		} );
 		File.WriteAllText( _asset.AbsolutePath, json );
+	}
+
+	protected override bool OnClose()
+	{
+		if ( _isUnsaved )
+		{
+			CloseDialog dialog = new($"Data Table Editor - {_asset.Path}", () =>
+			{
+				Save();
+				Close();
+			}, () =>
+			{
+				_isUnsaved = false;
+				Close();
+			});
+		}
+
+		return !_isUnsaved;
 	}
 
 	public override void SetWindowIcon( string name )
