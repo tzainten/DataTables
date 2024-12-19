@@ -308,7 +308,7 @@ public class DataTableEditor : DockWindow
 		{
 			Rect rect = new Rect( 0.0f, 0.0f, 128f, 128f );
 			Paint.ClearPen();
-			Paint.SetBrush( in Color.Green );
+			Paint.SetBrush( Color.Parse( "#b0e24d" ).GetValueOrDefault() );
 			Paint.DrawRect( in rect, 16f );
 			Paint.SetPen( in Color.Black );
 			Paint.DrawIcon( rect, name, 120f );
