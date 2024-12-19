@@ -28,6 +28,8 @@ public class DataTableEditor : DockWindow
 
 	private Splitter _splitter;
 
+	private bool _isUnsaved = false;
+
 	public DataTableEditor( Asset asset, DataTable dataTable )
 	{
 		_asset = asset;
@@ -52,6 +54,28 @@ public class DataTableEditor : DockWindow
 
 		Show();
 		PopulateEditor();
+	}
+
+	private void MarkUnsaved()
+	{
+		_isUnsaved = true;
+		Title = $"Data Table Editor - {_asset.Path}*";
+	}
+
+	private void MarkSaved()
+	{
+		_isUnsaved = false;
+		Title = $"Data Table Editor - {_asset.Path}";
+	}
+
+	private bool SheetFilter( SerializedProperty property )
+	{
+		var obj = property.Parent;
+		obj.OnPropertyChanged = serializedProperty =>
+		{
+			MarkUnsaved();
+		};
+		return true;
 	}
 
 	[EditorEvent.Hotload]
@@ -133,13 +157,13 @@ public class DataTableEditor : DockWindow
 		{
 			_tableView.ListView.Selection.Add( _internalEntries[0] );
 			_sheet.Clear( true );
-			_sheet.AddObject( _internalEntries[0].GetSerialized() );
+			_sheet.AddObject( _internalEntries[0].GetSerialized(), SheetFilter );
 		}
 
 		_tableView.ItemClicked = o =>
 		{
 			_sheet.Clear( true );
-			_sheet.AddObject( o.GetSerialized() );
+			_sheet.AddObject( o.GetSerialized(), SheetFilter );
 		};
 
 		_splitter.AddWidget( _tableView );
@@ -176,6 +200,9 @@ public class DataTableEditor : DockWindow
 
 	private void DuplicateEntry()
 	{
+		if ( _tableView.ListView.Selection.Count > 0 )
+			MarkUnsaved();
+
 		List<object> newSelections = new();
 		foreach ( var selection in _tableView.ListView.Selection )
 		{
@@ -187,7 +214,7 @@ public class DataTableEditor : DockWindow
 			_tableView.AddItem( o );
 
 			_sheet.Clear( true );
-			_sheet.AddObject( o.GetSerialized() );
+			_sheet.AddObject( o.GetSerialized(), SheetFilter );
 
 			newSelections.Add( o );
 		}
@@ -203,6 +230,9 @@ public class DataTableEditor : DockWindow
 	private void RemoveEntry()
 	{
 		_sheet.Clear( true );
+
+		if ( _tableView.ListView.Selection.Count > 0 )
+			MarkUnsaved();
 
 		var index = -1;
 		foreach ( var selection in _tableView.ListView.Selection )
@@ -224,12 +254,14 @@ public class DataTableEditor : DockWindow
 		{
 			_tableView.ListView.Selection.Add( _internalEntries[index] );
 			_sheet.Clear( true );
-			_sheet.AddObject( _internalEntries[index].GetSerialized() );
+			_sheet.AddObject( _internalEntries[index].GetSerialized(), SheetFilter );
 		}
 	}
 
 	private void AddEntry()
 	{
+		MarkUnsaved();
+
 		var o = TypeLibrary.Create<RowStruct>( _dataTable.StructType );
 		o.RowName = $"NewEntry_{_dataTable.EntryCount++}";
 
@@ -240,7 +272,7 @@ public class DataTableEditor : DockWindow
 		_tableView.ListView.Selection.Add( o );
 
 		_sheet.Clear( true );
-		_sheet.AddObject( o.GetSerialized() );
+		_sheet.AddObject( o.GetSerialized(), SheetFilter );
 
 		_tableView.ListView.ScrollTo( o );
 	}
@@ -248,6 +280,8 @@ public class DataTableEditor : DockWindow
 	[Shortcut( "editor.save", "CTRL+S", ShortcutType.Window )]
 	private void Save()
 	{
+		MarkSaved();
+
 		if ( _internalEntries.Count == 0 )
 			_dataTable.EntryCount = 0;
 
