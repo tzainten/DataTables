@@ -116,7 +116,6 @@ public class DataTableEditor : DockWindow
 		var sheetCanvas = new Widget( scroll.Canvas );
 		sheetCanvas.MinimumHeight = 200;
 		sheetCanvas.Layout = Layout.Column();
-		sheetCanvas.Layout.AddStretchCell();
 		sheetCanvas.Layout.Add( _sheet );
 		sheetCanvas.Layout.AddStretchCell();
 
