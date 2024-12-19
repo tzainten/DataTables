@@ -131,6 +131,7 @@ public class DataTableEditor : DockWindow
 
 		var rowNameCol = _tableView.AddColumn();
 		rowNameCol.Name = "RowName";
+		rowNameCol.TextColor = Color.Parse( "#e1913c" ).GetValueOrDefault();
 		rowNameCol.Value = o =>
 		{
 			return structType.GetProperty( "RowName" ).GetValue( o )?.ToString() ?? "";

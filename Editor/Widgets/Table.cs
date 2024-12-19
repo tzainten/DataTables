@@ -50,6 +50,7 @@ internal class TableView : Widget
 		public Func<object, string> Value;
 		public TextFlag TextFlag = TextFlag.Left;
 		public Label Label;
+		public Color TextColor = Theme.ControlText;
 	}
 
 	public ListView ListView { get; set; }
@@ -133,7 +134,10 @@ internal class TableView : Widget
 			return;*/
 
 		var isAlt = widget.Row % 2 == 0;
-		var backgroundColor = widget.Selected ? Theme.Selection : ( widget.Hovered ? Theme.ButtonDefault.WithAlpha( 0.7f ) : Theme.ButtonDefault.WithAlpha( isAlt ? 0.3f : 0.2f ) );
+		var backgroundColor = widget.Selected
+			? Theme.Selection
+			: (widget.Hovered ? Theme.ButtonDefault.WithAlpha( 0.7f ) :
+				isAlt ? Color.Parse( "#262627" ).GetValueOrDefault() : Color.Parse( "#313131" ).GetValueOrDefault());
 
 		Paint.ClearPen();
 		Paint.SetBrush( backgroundColor );
@@ -142,15 +146,22 @@ internal class TableView : Widget
 		Rect rect = widget.Rect;
 
 		Paint.SetDefaultFont();
-		Paint.SetPen( widget.Selected ? Color.White : Theme.ControlText );
 
 		foreach ( var column in Columns )
 		{
+			Paint.SetPen( widget.Selected ? Color.White : column.TextColor );
 			var width = column.Width + 4;
 			rect.Width = width;
 			Paint.DrawText( rect.Shrink( 8, 0 ), column.Value(widget.Object), column.TextFlag | TextFlag.CenterVertically | TextFlag.SingleLine );
 			rect.Left += width;
+
+			Paint.SetPen( Color.Parse("#414141").GetValueOrDefault() );
+			Paint.DrawLine( rect.TopLeft.WithX( rect.TopLeft.x - 1 ), rect.BottomLeft.WithX( rect.BottomLeft.x - 1 ) );
+			Paint.SetPen( widget.Selected ? Color.White : Theme.ControlText );
 		}
+
+		Paint.SetPen( Color.Parse("#414141").GetValueOrDefault() );
+		Paint.DrawLine( widget.Rect.BottomLeft, widget.Rect.BottomRight );
 	}
 
 	protected override void OnPaint()
@@ -243,6 +254,7 @@ internal class TableView : Widget
 		{
 			var lbl = new Label( column.Name );
 			lbl.ContentMargins = new Margin( 8, 0, 0, 0 );
+			lbl.SetStyles( "font-weight: bold; font-size: 12px;" );
 			lbl.OnPaintOverride = () =>
 			{
 				Paint.SetBrush( ControlWidget.ControlColor );
