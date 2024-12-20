@@ -25,7 +25,7 @@ public class DataTable : GameResource
 	}
 
 	[Title( "Add Row - {T|RowStruct}" )]
-	public bool Add<T>( string rowName, T rowStruct ) where T : RowStruct, new()
+	public bool Add( string rowName, RowStruct rowStruct )
 	{
 		if ( StructEntries.Find( x => x.RowName == rowName ) is not null )
 			return false;
