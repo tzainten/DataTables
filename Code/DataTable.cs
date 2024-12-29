@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using Sandbox;
 
 namespace DataTables;
@@ -24,7 +25,7 @@ public class DataTable : GameResource
 		return (T)StructEntries.Find( x => x.RowName == rowName );
 	}
 
-	[Title( "Add Row - {T|RowStruct}" )]
+	[Title( "Add Row - {T|RowStruct}" ), Description("WARNING: This will not save to disk!")]
 	public bool Add( string rowName, RowStruct rowStruct )
 	{
 		if ( StructEntries.Find( x => x.RowName == rowName ) is not null )
@@ -41,6 +42,20 @@ public class DataTable : GameResource
 		var dataTable = Json.Deserialize<DataTable>( FileSystem.Mounted.ReadAllText( ResourcePath ) );
 		StructType = dataTable.StructType;
 		StructEntries = dataTable.StructEntries;
+	}
+
+	protected override void OnJsonSerialize( JsonObject node )
+	{
+		base.OnJsonSerialize( node );
+
+		if ( StructEntries.Count > 0 )
+		{
+			JsonArray ja = new();
+			foreach ( var entry in StructEntries )
+				ja.Add( Json.Serialize( entry ) );
+
+			node["StructEntries"] = ja;
+		}
 	}
 
 	protected override void PostLoad()

@@ -14,89 +14,84 @@ namespace DataTables;
 public static class Json
 {
 	private static PropertyDescription _currentProperty;
-	private static int _depth = 0;
 
-	public static void SerializeProperty( Utf8JsonWriter writer, object value )
+	public static void SerializeProperty( JsonObject jo, string name, object value )
 	{
 		switch ( value.GetObjectType() )
 		{
 			case ObjectType.Number:
 				double.TryParse( value.ToString(), out double result );
-				writer.WriteNumberValue( result );
+				jo[name] = result;
 				break;
 			case ObjectType.Object:
-				SerializeObject( writer, value );
+				JsonObject new_jo = new();
+				SerializeObject(new_jo, value);
+				jo[name] = new_jo;
 				break;
 			case ObjectType.String:
-				writer.WriteStringValue( (string)value );
+				jo[name] = (string)value;
 				break;
 			case ObjectType.Boolean:
-				writer.WriteBooleanValue( (bool)value );
+				jo[name] = (bool)value;
 				break;
 			case ObjectType.Array:
-				SerializeArray( writer, value as IList );
+				JsonArray ja = new();
+				SerializeArray(ja, value as IEnumerable);
+				jo[name] = ja;
 				break;
 			case ObjectType.Dictionary:
-				SerializeDictionary( writer, value as IDictionary );
+				JsonObject jd = new();
+				SerializeDictionary(jd, value as IDictionary);
+				jo[name] = jd;
 				break;
 			case ObjectType.Unknown:
 				throw new Exception( "Unknown object type." );
 		}
 	}
 
-	public static void SerializeObject( Utf8JsonWriter writer, object value, Action<Utf8JsonWriter> tailWrite = null )
+	public static void SerializeObject( JsonObject jo, object value )
 	{
-		writer.WriteStartObject();
-
-		if ( _depth > 0 )
-			writer.WriteString( "__type", value.GetType().FullName );
-
-		_depth++;
-		SerializeProperties( writer, value, true );
-
-		if ( tailWrite is not null )
-			tailWrite( writer );
-
-		writer.WriteEndObject();
-		_depth--;
+		SerializeProperties( jo, value );
+		jo["__type"] = value.GetType().Name;
 	}
 
-	public static void SerializeArray( Utf8JsonWriter writer, IEnumerable array )
+	public static void SerializeArray( JsonArray ja, IEnumerable array )
 	{
-		writer.WriteStartArray();
-
 		foreach ( var elem in array )
 		{
 			if ( elem is null )
 				continue;
 
-			if ( elem.GetObjectType() == ObjectType.Object )
-				SerializeObject( writer, elem );
+			if (elem.GetObjectType() == ObjectType.Object)
+			{
+				JsonObject new_jo = new();
+				SerializeObject( new_jo, elem );
+				ja.Add(new_jo);
+			}
 			else
-				SerializeProperty( writer, elem );
+			{
+				//SerializeProperty( writer, elem );
+				ja.Add(elem);
+			}
 		}
-
-		writer.WriteEndArray();
 	}
 
-	public static void SerializeDictionary( Utf8JsonWriter writer, IDictionary dictionary )
+	public static void SerializeDictionary( JsonObject jo, IDictionary dictionary )
 	{
-		writer.WriteStartObject();
-
 		foreach ( var key in dictionary.Keys )
 		{
 			if ( key is null )
 				continue;
 
 			var value = dictionary[key];
-			writer.WritePropertyName( key.ToString() );
-			SerializeProperty( writer, value );
-		}
+			if (value is null)
+				continue;
 
-		writer.WriteEndObject();
+			SerializeProperty( jo, key.ToString(), value );
+		}
 	}
 
-	public static void SerializeProperties( Utf8JsonWriter writer, object target, bool genericCheck = false )
+	public static void SerializeProperties( JsonObject jo, object target )
 	{
 		TypeDescription type = TypeLibrary.GetType( target.GetType().Name );
 		foreach ( var property in type.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
@@ -112,28 +107,18 @@ public static class Json
 					continue;
 
 				_currentProperty = property;
-
-				writer.WritePropertyName( property.Name );
-				SerializeProperty( writer, value );
+				SerializeProperty(jo, property.Name, value);
 			}
 		}
 	}
 
-	public static string Serialize( object target, Action<Utf8JsonWriter> tailWrite = null )
+	public static JsonObject Serialize( object target )
 	{
-		using MemoryStream stream = new();
-		using Utf8JsonWriter writer = new(stream, new JsonWriterOptions() { Indented = true });
+		JsonObject jo = new();
 
-		_depth = 0;
+		SerializeObject( jo, target );
 
-		if ( target.GetObjectType() == ObjectType.Object )
-			SerializeObject( writer, target, tailWrite: tailWrite );
-		else
-			SerializeProperty( writer, target );
-
-		_currentProperty = null;
-		writer.Flush();
-		return Encoding.UTF8.GetString( stream.ToArray() );
+		return jo;
 	}
 
 	public static T Deserialize<T>( string json )
@@ -229,7 +214,11 @@ public static class Json
 					property.SetValue( instance, value.GetValue<bool>() );
 					break;
 				case JsonValueKind.Number:
-					property.SetValue( instance, value.GetValue<double>() );
+					var num = value.GetValue<double>();
+					if (int.TryParse(num.ToString(), out var result))
+						property.SetValue(instance, result);
+					else
+						property.SetValue(instance, value.GetValue<double>());
 					break;
 				case JsonValueKind.Array:
 					IList list = (IList)DeserializeArray( value.AsArray() );

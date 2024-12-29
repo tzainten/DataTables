@@ -82,8 +82,7 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 	public void AssetOpen( Asset asset )
 	{
 		_asset = asset;
-		_dataTable = ResourceLibrary.Get<DataTable>( _asset.Path );
-		_dataTable.Fix();
+		_dataTable = _asset.LoadResource<DataTable>();
 
 		var type = TypeLibrary.GetType( _dataTable.StructType );
 		if ( type is null || !TypeLibrary.GetTypes().Any( x => x.TargetType.IsSubclassOf( typeof(RowStruct) ) ) )

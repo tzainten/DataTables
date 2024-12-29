@@ -287,16 +287,7 @@ public class DataTableEditor : DockWindow
 			_dataTable.EntryCount = 0;
 
 		_dataTable.StructEntries = _internalEntries;
-		var json = Json.Serialize( _dataTable, writer =>
-		{
-			writer.WritePropertyName( "__references" );
-
-			Json.SerializeArray( writer, _dataTable.GetReferencedPackages() );
-
-			writer.WritePropertyName( "__version" );
-			writer.WriteNumberValue( _dataTable.ResourceVersion );
-		} );
-		File.WriteAllText( _asset.AbsolutePath, json );
+		_asset.SaveToDisk( _dataTable );
 	}
 
 	protected override bool OnClose()
