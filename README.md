@@ -60,5 +60,3 @@ public class YourCoolRowStruct : RowStruct
 
 # :warning: Known Issues :warning:
 - Custom Generic Types are not currently supported. I haven't been able to get TypeLibrary to work with this yet, but hopefully in the future this will get fixed.
-- `DataTable.Add` doesn't save to disk. This isn't currently possible because `FileSystem.Mounted` does not have write access
-    - If there's a way to get type annotation to work using Sandbox.Json, then this could probably get fixed.
