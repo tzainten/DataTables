@@ -324,6 +324,12 @@ public class DataTableEditor : DockWindow
 		}
 	}
 
+	[Shortcut( "editor.delete", "DEL", ShortcutType.Window )]
+	private void Delete()
+	{
+		RemoveEntry();
+	}
+
 	[Shortcut( "editor.save", "CTRL+S", ShortcutType.Window )]
 	private void Save()
 	{
