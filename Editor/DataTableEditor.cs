@@ -282,6 +282,48 @@ public class DataTableEditor : DockWindow
 		_tableView.ListView.ScrollTo( o );
 	}
 
+	private List<object> _clipboard = new();
+
+	[Shortcut( "editor.copy", "CTRL+C", ShortcutType.Window )]
+	private void Copy()
+	{
+		_clipboard.Clear();
+		foreach ( var selection in _tableView.ListView.Selection )
+			_clipboard.Add( selection );
+	}
+
+	[Shortcut( "editor.paste", "CTRL+V", ShortcutType.Window )]
+	private void Paste()
+	{
+		if ( _clipboard.Count == 0 )
+			return;
+
+		MarkUnsaved();
+
+		List<object> newSelections = new();
+		foreach ( var selection in _clipboard )
+		{
+			var row = selection as RowStruct;
+			var o = TypeLibrary.Clone<RowStruct>( row );
+			o.RowName = $"NewEntry_{_entryCount++}";
+
+			_internalEntries.Add( o );
+			_tableView.AddItem( o );
+
+			_sheet.Clear( true );
+			_sheet.AddObject( o.GetSerialized(), SheetFilter );
+
+			newSelections.Add( o );
+		}
+
+		_tableView.ListView.Selection.Clear();
+		foreach ( var newSelection in newSelections )
+		{
+			_tableView.ListView.Selection.Add( newSelection );
+			_tableView.ListView.ScrollTo( newSelection );
+		}
+	}
+
 	[Shortcut( "editor.save", "CTRL+S", ShortcutType.Window )]
 	private void Save()
 	{
