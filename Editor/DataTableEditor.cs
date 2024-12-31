@@ -21,7 +21,8 @@ public class DataTableEditor : DockWindow
 
 	private ToolBar _toolBar;
 
-	private List<RowStruct> _internalEntries;
+	private List<RowStruct> _internalEntries = new();
+	private int _entryCount = 0;
 
 	private TableView _tableView;
 
@@ -36,7 +37,10 @@ public class DataTableEditor : DockWindow
 		_asset = asset;
 		_dataTable = dataTable;
 		_structType = TypeLibrary.GetType( dataTable.StructType );
-		_internalEntries = _dataTable.StructEntries;
+
+		_entryCount = _dataTable.EntryCount;
+		foreach ( var entry in _dataTable.StructEntries )
+			_internalEntries.Add( entry );
 
 		DeleteOnClose = true;
 
@@ -209,7 +213,7 @@ public class DataTableEditor : DockWindow
 		{
 			var row = selection as RowStruct;
 			var o = TypeLibrary.Clone<RowStruct>( row );
-			o.RowName = $"NewEntry_{_dataTable.EntryCount++}";
+			o.RowName = $"NewEntry_{_entryCount++}";
 
 			_internalEntries.Add( o );
 			_tableView.AddItem( o );
@@ -264,7 +268,7 @@ public class DataTableEditor : DockWindow
 		MarkUnsaved();
 
 		var o = TypeLibrary.Create<RowStruct>( _dataTable.StructType );
-		o.RowName = $"NewEntry_{_dataTable.EntryCount++}";
+		o.RowName = $"NewEntry_{_entryCount++}";
 
 		_internalEntries.Add( o );
 		_tableView.AddItem( o );
@@ -284,9 +288,13 @@ public class DataTableEditor : DockWindow
 		MarkSaved();
 
 		if ( _internalEntries.Count == 0 )
-			_dataTable.EntryCount = 0;
+			_entryCount = 0;
 
-		_dataTable.StructEntries = _internalEntries;
+		_dataTable.StructEntries.Clear();
+		foreach ( var entry in _internalEntries )
+			_dataTable.StructEntries.Add( entry );
+
+		_dataTable.EntryCount = _entryCount;
 		_asset.SaveToDisk( _dataTable );
 	}
 
@@ -301,6 +309,8 @@ public class DataTableEditor : DockWindow
 			}, () =>
 			{
 				_isUnsaved = false;
+				if ( _dataTable.StructEntries.Count == 0 )
+					_dataTable.EntryCount = 0;
 				Close();
 			});
 		}
