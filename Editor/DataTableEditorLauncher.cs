@@ -4,7 +4,6 @@ using DataTables;
 using Editor;
 using Sandbox;
 using FileSystem = Sandbox.FileSystem;
-using Json = DataTables.Json;
 
 namespace DataTablesEditor;
 

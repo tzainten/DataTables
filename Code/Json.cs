@@ -1,7 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -11,7 +9,7 @@ using Sandbox;
 
 namespace DataTables;
 
-public static class Json
+internal static class Json
 {
 	private static PropertyDescription _currentProperty;
 

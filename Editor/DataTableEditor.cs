@@ -7,7 +7,6 @@ using System.Text.Json;
 using DataTables;
 using Editor;
 using Sandbox;
-using Json = DataTables.Json;
 
 namespace DataTablesEditor;
 
