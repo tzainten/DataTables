@@ -4,9 +4,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using DataTables;
 using Editor;
 using Sandbox;
+using Sandbox.Helpers;
+using Application = Editor.Application;
+using Json = DataTables.Json;
 
 namespace DataTablesEditor;
 
@@ -31,6 +35,10 @@ public class DataTableEditor : DockWindow
 
 	private bool _isUnsaved = false;
 
+	private UndoSystem _undo = new();
+
+	private string _previousJson;
+
 	public DataTableEditor( Asset asset, DataTable dataTable )
 	{
 		_asset = asset;
@@ -40,6 +48,11 @@ public class DataTableEditor : DockWindow
 		_entryCount = _dataTable.EntryCount;
 		foreach ( var entry in _dataTable.StructEntries )
 			_internalEntries.Add( entry );
+
+		JsonArray array = new();
+		Json.SerializeArray( array, _internalEntries );
+		string json = array.ToJsonString();
+		_previousJson = json;
 
 		DeleteOnClose = true;
 
@@ -56,8 +69,35 @@ public class DataTableEditor : DockWindow
 		_splitter = new(this);
 		_splitter.IsVertical = true;
 
+		_undo.SetSnapshotFunction( GetSnapshot );
+		_undo.Initialize();
+
 		Show();
 		PopulateEditor();
+	}
+
+	private Action GetSnapshot()
+	{
+		var state = new Snapshot( _dataTable );
+		return () => RestoreState( state );
+	}
+
+	private void RestoreState( Snapshot oldState )
+	{
+		oldState.Restore();
+		_entryCount = _dataTable.EntryCount;
+		_internalEntries.Clear();
+		foreach ( var entry in _dataTable.StructEntries )
+			_internalEntries.Add( entry );
+		MarkUnsaved();
+		PopulateEditor();
+	}
+
+	[Shortcut( "editor.undo", "CTRL+Z", ShortcutType.Window )]
+	private void Undo()
+	{
+		if ( _undo.Undo() )
+			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 	}
 
 	private void MarkUnsaved()
@@ -80,6 +120,35 @@ public class DataTableEditor : DockWindow
 			MarkUnsaved();
 		};
 		return true;
+	}
+
+	private int _mouseUpFrames;
+
+	private RealTimeSince _timeSinceChange;
+
+	[EditorEvent.Frame]
+	private void Tick()
+	{
+		_mouseUpFrames++;
+		if ( Application.MouseButtons != 0 )
+		{
+			_mouseUpFrames = 0;
+		}
+
+		if ( _mouseUpFrames > 2 && _timeSinceChange > 0.5f )
+		{
+			JsonArray array = new();
+			Json.SerializeArray( array, _internalEntries );
+			string json = array.ToJsonString();
+			if ( json != _previousJson )
+			{
+				_previousJson = json;
+				_undo.Snapshot( "Generic Undo" );
+				Log.Info( "Undo!" );
+				MarkUnsaved();
+				_timeSinceChange = 0;
+			}
+		}
 	}
 
 	[EditorEvent.Hotload]
@@ -160,14 +229,12 @@ public class DataTableEditor : DockWindow
 		if ( _internalEntries.Count > 0 )
 		{
 			_tableView.ListView.Selection.Add( _internalEntries[0] );
-			_sheet.Clear( true );
-			_sheet.AddObject( _internalEntries[0].GetSerialized(), SheetFilter );
+			PopulateControlSheet( _internalEntries[0].GetSerialized() );
 		}
 
 		_tableView.ItemClicked = o =>
 		{
-			_sheet.Clear( true );
-			_sheet.AddObject( o.GetSerialized(), SheetFilter );
+			PopulateControlSheet( o.GetSerialized() );
 		};
 
 		_splitter.AddWidget( _tableView );
@@ -177,6 +244,12 @@ public class DataTableEditor : DockWindow
 		_splitter.SetCollapsible( 1, false );
 
 		Canvas.Layout.Add( _splitter );
+	}
+
+	private void PopulateControlSheet( SerializedObject so )
+	{
+		_sheet.Clear( true );
+		_sheet.AddObject( so, SheetFilter );
 	}
 
 	private void AddToolbar()
@@ -217,8 +290,7 @@ public class DataTableEditor : DockWindow
 			_internalEntries.Add( o );
 			_tableView.AddItem( o );
 
-			_sheet.Clear( true );
-			_sheet.AddObject( o.GetSerialized(), SheetFilter );
+			PopulateControlSheet( o.GetSerialized() );
 
 			newSelections.Add( o );
 		}
@@ -257,8 +329,7 @@ public class DataTableEditor : DockWindow
 		if ( index < _internalEntries.Count )
 		{
 			_tableView.ListView.Selection.Add( _internalEntries[index] );
-			_sheet.Clear( true );
-			_sheet.AddObject( _internalEntries[index].GetSerialized(), SheetFilter );
+			PopulateControlSheet( _internalEntries[index].GetSerialized() );
 		}
 	}
 
@@ -275,8 +346,7 @@ public class DataTableEditor : DockWindow
 		_tableView.ListView.Selection.Clear();
 		_tableView.ListView.Selection.Add( o );
 
-		_sheet.Clear( true );
-		_sheet.AddObject( o.GetSerialized(), SheetFilter );
+		PopulateControlSheet( o.GetSerialized() );
 
 		_tableView.ListView.ScrollTo( o );
 	}
@@ -309,8 +379,7 @@ public class DataTableEditor : DockWindow
 			_internalEntries.Add( o );
 			_tableView.AddItem( o );
 
-			_sheet.Clear( true );
-			_sheet.AddObject( o.GetSerialized(), SheetFilter );
+			PopulateControlSheet( o.GetSerialized() );
 
 			newSelections.Add( o );
 		}

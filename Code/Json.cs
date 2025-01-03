@@ -6,12 +6,13 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Sandbox;
+using Sandbox.Diagnostics;
 
 namespace DataTables;
 
 internal static class Json
 {
-	private static PropertyDescription _currentProperty;
+	public static PropertyDescription _currentProperty;
 
 	public static void SerializeProperty( JsonObject jo, string name, object value )
 	{
@@ -143,40 +144,38 @@ internal static class Json
 		TypeDescription type = null;
 		object instance = null;
 
-		if ( _currentProperty is not null )
+		if ( __type is not null )
 		{
-			if ( __type is not null )
-			{
-				type = TypeLibrary.GetType( __type.GetValue<string>() );
+			type = TypeLibrary.GetType( __type.GetValue<string>() );
 
-				if ( type.IsGenericType )
+			if ( type.IsGenericType )
+			{
+				var listType = TypeLibrary.GetGenericArguments( _currentProperty.PropertyType ).FirstOrDefault();
+				bool isValidType = type.TargetType == listType || type.TargetType.IsSubclassOf( listType );
+				if ( !isValidType )
 				{
-					var listType = TypeLibrary.GetGenericArguments( _currentProperty.PropertyType ).FirstOrDefault();
-					bool isValidType = type.TargetType == listType || type.TargetType.IsSubclassOf( listType );
-					if ( !isValidType )
-					{
-						Log.Error( "Invalid List Type!" );
-						return null;
-					}
+					Log.Error( "Invalid List Type!" );
+					return null;
 				}
 			}
+		}
 
-			if ( type is null )
+		if ( type is null && _currentProperty is not null )
+		{
+			if ( _currentProperty.PropertyType.IsGenericType )
 			{
-				if ( _currentProperty.PropertyType.IsGenericType )
-				{
-					type = TypeLibrary.GetType( TypeLibrary.GetGenericArguments( _currentProperty.PropertyType )
-						.FirstOrDefault() );
-				}
-				else
-				{
-					type = TypeLibrary.GetType( _currentProperty.PropertyType );
-				}
+				type = TypeLibrary.GetType( TypeLibrary.GetGenericArguments( _currentProperty.PropertyType )
+					.FirstOrDefault() );
+			}
+			else
+			{
+				type = TypeLibrary.GetType( _currentProperty.PropertyType );
 			}
 		}
 		else
 		{
-			type = targetType;
+			if ( type is null )
+				type = targetType;
 		}
 
 		instance = TypeLibrary.Create<object>( type.TargetType );
@@ -278,14 +277,24 @@ internal static class Json
 		return dictionary;
 	}
 
-	public static object DeserializeArray( JsonArray node )
+	public static object DeserializeArray( JsonArray node, Type listType = null )
 	{
 		IList list = null;
 
-		var type = TypeLibrary.GetType( _currentProperty.PropertyType );
-		if ( type.TargetType.IsAssignableTo( typeof(IList) ) )
+		if ( _currentProperty is not null )
 		{
-			list = (IList)TypeLibrary.Create<object>( _currentProperty.PropertyType );
+			var type = TypeLibrary.GetType( _currentProperty.PropertyType );
+			if ( type.TargetType.IsAssignableTo( typeof(IList) ) )
+			{
+				list = (IList)TypeLibrary.Create<object>( _currentProperty.PropertyType );
+			}
+		}
+		else
+		{
+			if ( listType is not null )
+			{
+				list = (IList)TypeLibrary.Create<object>( listType );
+			}
 		}
 
 		if ( list is null )
