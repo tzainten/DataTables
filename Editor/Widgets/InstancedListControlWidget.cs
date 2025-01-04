@@ -179,7 +179,20 @@ public class InstancedListControlWidget : ControlWidget
 				var col = new Widget();
 				col.Layout = Layout.Column();
 
+				Sheet = new ControlSheet();
+
 				var dropdown = new Dropdown( "Select a class..." );
+
+				object instance = null;
+				var firstType = TypeLibrary.GetTypes().FirstOrDefault( x => x.TargetType == ListWidget.ListType );
+				if ( firstType is not null )
+				{
+					instance = Activator.CreateInstance( firstType.TargetType );
+					dropdown.Value = instance.GetType();
+
+					Sheet.Clear( true );
+					Sheet.AddObject( instance.GetSerialized() );
+				}
 
 				dropdown.PopulatePopup = widget =>
 				{
@@ -202,8 +215,6 @@ public class InstancedListControlWidget : ControlWidget
 					}
 				};
 
-				Sheet = new ControlSheet();
-
 				var value = property.GetValue<object>();
 				if ( value is not null )
 				{
@@ -211,11 +222,20 @@ public class InstancedListControlWidget : ControlWidget
 					dropdown.Text = value.GetType().Name;
 					dropdown.Value = value.GetType();
 
+					Sheet.Clear( true );
 					Sheet.AddObject( value.GetSerialized() );
 				}
 				else
 				{
 					dropdown.Icon = "error";
+					if ( instance is not null )
+					{
+						dropdown.Icon = "account_tree";
+						dropdown.Text = instance.GetType().Name;
+						dropdown.Value = instance.GetType();
+
+						property.SetValue( instance );
+					}
 				}
 
 				col.Layout.Add( dropdown );
