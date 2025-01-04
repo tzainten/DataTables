@@ -39,11 +39,15 @@ public class DataTableEditor : DockWindow
 
 	private string _previousJson;
 
+	private PropertyDescription[] _previousProperties;
+
 	public DataTableEditor( Asset asset, DataTable dataTable )
 	{
 		_asset = asset;
 		_dataTable = dataTable;
 		_structType = TypeLibrary.GetType( dataTable.StructType );
+
+		_previousProperties = _structType.Properties.ToArray();
 
 		_entryCount = _dataTable.EntryCount;
 		foreach ( var entry in _dataTable.StructEntries )
@@ -156,6 +160,28 @@ public class DataTableEditor : DockWindow
 	{
 		if ( !Visible )
 			return;
+
+		PropertyDescription[] properties = _structType.Properties.ToArray();
+		foreach ( var property in properties )
+		{
+			var type = property.PropertyType;
+			bool isList = type.IsAssignableTo( typeof(IList) );
+			bool isDictionary = type.IsAssignableTo( typeof(IDictionary) );
+
+			if ( type.IsGenericType && (!isList && !isDictionary) )
+			{
+				StructDialog popup = new StructDialog( $"Data Table Editor - {_asset.Path}" );
+				popup.DeleteOnClose = true;
+				popup.OnWindowClosed = delegate
+				{
+					Close();
+				};
+				popup.SetModal(on: true, application: true);
+				popup.Hide();
+				popup.Show();
+				return;
+			}
+		}
 
 		if ( _splitter is not null && _splitter.IsValid )
 			_splitter.DestroyChildren();
