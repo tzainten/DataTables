@@ -180,7 +180,7 @@ public class DataTableEditor : DockWindow
 		}
 
 		DockManager.Clear();
-		DockManager.RegisterDockType( "Data Table", "equalizer", null, false );
+		DockManager.RegisterDockType( "Table View", "equalizer", null, false );
 		DockManager.RegisterDockType( "Row Editor", "tune", null, false );
 
 		if ( _splitter is not null && _splitter.IsValid )
