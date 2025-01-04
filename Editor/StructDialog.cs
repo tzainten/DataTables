@@ -13,6 +13,8 @@ public class StructDialog : BaseWindow
 		WindowTitle = title;
 		SetWindowIcon( "equalizer" );
 
+		EditorUtility.PlayRawSound( "sounds/editor/fail.wav" );
+
 		Layout = Layout.Column();
 		Layout.Margin = 8;
 		Layout.Spacing = 8;
