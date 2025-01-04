@@ -41,6 +41,8 @@ public class DataTableEditor : DockWindow
 
 	private PropertyDescription[] _previousProperties;
 
+	private string _defaultDockState;
+
 	public DataTableEditor( Asset asset, DataTable dataTable )
 	{
 		_asset = asset;
@@ -65,13 +67,7 @@ public class DataTableEditor : DockWindow
 		SetWindowIcon( "equalizer" );
 
 		AddToolbar();
-
-		Canvas = new();
-		Canvas.Layout = Layout.Column();
-		var layout = Canvas.Layout;
-
-		_splitter = new(this);
-		_splitter.IsVertical = true;
+		BuildMenuBar();
 
 		_undo.SetSnapshotFunction( GetSnapshot );
 		_undo.Initialize();
@@ -161,6 +157,10 @@ public class DataTableEditor : DockWindow
 		if ( !Visible )
 			return;
 
+		DockManager.Clear();
+		DockManager.RegisterDockType( "Data Table", "equalizer", null, false );
+		DockManager.RegisterDockType( "Row Editor", "tune", null, false );
+
 		PropertyDescription[] properties = _structType.Properties.ToArray();
 		foreach ( var property in properties )
 		{
@@ -225,8 +225,12 @@ public class DataTableEditor : DockWindow
 		if ( structType is null )
 			return;
 
-		_tableView = new TableView( Canvas );
-		_tableView.MinimumHeight = 200;
+		Widget tableView = new(this){ WindowTitle = "Table View" };
+		tableView.Layout = Layout.Column();
+		tableView.SetWindowIcon( "equalizer" );
+		tableView.Name = "Data Table";
+
+		_tableView = new TableView( tableView );
 
 		var rowNameCol = _tableView.AddColumn();
 		rowNameCol.Name = "RowName";
@@ -263,19 +267,65 @@ public class DataTableEditor : DockWindow
 			PopulateControlSheet( o.GetSerialized() );
 		};
 
-		_splitter.AddWidget( _tableView );
-		//_splitter.AddWidget( scroll.Canvas );
-		_splitter.AddWidget( scroll );
-		_splitter.SetCollapsible( 0, false );
-		_splitter.SetCollapsible( 1, false );
+		tableView.Layout.Add( _tableView );
 
-		Canvas.Layout.Add( _splitter );
+		Widget rowEditor = new(this){ WindowTitle = "Row Editor" };
+		rowEditor.Layout = Layout.Column();
+		rowEditor.SetWindowIcon( "tune" );
+		rowEditor.Name = "Row Editor";
+
+		rowEditor.Layout.Add( scroll );
+
+		var flags = DockManager.DockProperty.HideCloseButton | DockManager.DockProperty.HideOnClose | DockManager.DockProperty.DisallowFloatWindow;
+
+		DockManager.AddDock( null, tableView, DockArea.Top, flags );
+		DockManager.AddDock( null, rowEditor, DockArea.Bottom, flags );
+		DockManager.RaiseDock( "data table" );
+		DockManager.Update();
+
+		_defaultDockState = DockManager.State;
 	}
 
 	private void PopulateControlSheet( SerializedObject so )
 	{
 		_sheet.Clear( true );
 		_sheet.AddObject( so, SheetFilter );
+	}
+
+	public void BuildMenuBar()
+	{
+		var file = MenuBar.AddMenu( "File" );
+		file.AddOption( "New", "common/new.png", null, "editor.new" ).StatusTip = "New Graph";
+		file.AddOption( "Open", "common/open.png", null, "editor.open" ).StatusTip = "Open Graph";
+		file.AddOption( "Save", "common/save.png", null, "editor.save" ).StatusTip = "Save Graph";
+
+		var view = MenuBar.AddMenu( "View" );
+		view.AboutToShow += () => OnViewMenu( view );
+	}
+
+	private void OnViewMenu( Menu view )
+	{
+		view.Clear();
+		view.AddOption( "Restore To Default", "settings_backup_restore", RestoreDefaultDockLayout );
+		view.AddSeparator();
+
+		foreach ( var dock in DockManager.DockTypes )
+		{
+			var o = view.AddOption( dock.Title, dock.Icon );
+			o.Checkable = true;
+			o.Checked = DockManager.IsDockOpen( dock.Title );
+			o.Toggled += ( b ) =>
+			{
+				DockManager.SetDockState( dock.Title, b );
+			};
+		}
+	}
+
+	protected override void RestoreDefaultDockLayout()
+	{
+		DockManager.State = _defaultDockState;
+
+		SaveToStateCookie();
 	}
 
 	private void AddToolbar()
