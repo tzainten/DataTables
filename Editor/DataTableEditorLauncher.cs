@@ -1,5 +1,7 @@
+using System.Collections;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
 using DataTables;
 using Editor;
 using Sandbox;
@@ -41,9 +43,31 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 
 			foreach ( var structType in structTypes )
 			{
+				bool passValidationCheck = true;
+				foreach ( var property in structType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+				{
+					var type = property.PropertyType;
+					bool isList = type.IsAssignableTo( typeof(IList) );
+					bool isDictionary = type.IsAssignableTo( typeof(IDictionary) );
+
+					if ( type.IsGenericType && (!isList && !isDictionary) )
+						passValidationCheck = false;
+				}
+
 				var btn = new DropdownButton( dropdown, structType.Name );
 				btn.Value = structType;
 				btn.Icon = "account_tree";
+
+				if ( !passValidationCheck )
+				{
+					btn.Enabled = false;
+					btn.Icon = "error";
+					btn.ToolTip = "\u26a0\ufe0f This RowStruct type contains generic properties that are not supported.";
+					btn.Label.Color = Color.White;
+					btn.IconButton.Foreground = Color.White;
+					btn.IconButton.TranslucentBackground = false;
+				}
+
 				widget.Layout.Add( btn );
 			}
 		};
@@ -58,6 +82,7 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 		row.AddStretchCell();
 
 		var confirmBtn = new Button.Primary( "Confirm", icon: "done" );
+		confirmBtn.Enabled = false;
 		confirmBtn.Clicked = () =>
 		{
 			var type = dropdown.Value as TypeDescription;
@@ -65,6 +90,12 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 			_asset.SaveToDisk( _dataTable );
 			OpenEditor();
 		};
+
+		dropdown.OnValueChanged = () =>
+		{
+			confirmBtn.Enabled = dropdown.Value is not null;
+		};
+
 		row.Add( confirmBtn );
 
 		Layout.AddStretchCell();

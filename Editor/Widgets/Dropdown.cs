@@ -7,6 +7,7 @@ namespace DataTablesEditor;
 public class Dropdown : Widget
 {
 	public Action<Widget> PopulatePopup;
+	public Action OnValueChanged;
 
 	private Label _label;
 
@@ -15,32 +16,31 @@ public class Dropdown : Widget
 
 	public object Value;
 
+	private string _icon;
 	public string Icon
 	{
 		set
 		{
-			if ( _labelIcon.IsValid() )
-			{
-				_labelIcon.Icon = value;
-				Rebuild();
-			}
+			_icon = value;
+			Rebuild();
 		}
 		get
 		{
-			return _labelIcon?.Icon;
+			return _icon;
 		}
 	}
 
+	private string _text;
 	public string Text
 	{
 		set
 		{
-			if ( _label.IsValid() )
-				_label.Text = value;
+			_text = value;
+			Rebuild();
 		}
 		get
 		{
-			return _label?.Text;
+			return _text;
 		}
 	}
 
@@ -55,28 +55,27 @@ public class Dropdown : Widget
 		Layout.Spacing = 4;
 		Layout.Margin = 4;
 
-		_labelIcon = new IconButton( "" );
+		_text = title;
+		Rebuild();
+	}
+
+	public void Rebuild()
+	{
+		Layout.Clear( true );
+
+		_labelIcon = new IconButton( _icon );
 		_labelIcon.Background = Color.Transparent;
 		_labelIcon.Foreground = Theme.ControlText;
 		_labelIcon.IconSize = 15;
 
-		_label = new Label( title ?? "" );
+		_label = new Label( _text ?? "" );
 
 		_arrowIcon = new IconButton( "Arrow_Drop_Down" );
 		_arrowIcon.Background = Color.Transparent;
 		_arrowIcon.Foreground = Theme.ControlText;
 		_arrowIcon.IconSize = 18;
 
-		Rebuild();
-	}
-
-	public void Rebuild()
-	{
-		Layout.Clear( false );
-
-		if ( _labelIcon.Icon != "" )
-			Layout.Add( _labelIcon );
-
+		Layout.Add( _labelIcon );
 		Layout.Add( _label );
 		Layout.AddStretchCell();
 		Layout.Add( _arrowIcon );
@@ -145,18 +144,20 @@ public class DropdownButton : Widget
 
 	public string Text;
 
-	private IconButton _iconButton;
+	public IconButton IconButton;
+
+	public Label Label;
 
 	public string Icon
 	{
 		set
 		{
-			if ( _iconButton.IsValid() )
-				_iconButton.Icon = value;
+			if ( IconButton.IsValid() )
+				IconButton.Icon = value;
 		}
 		get
 		{
-			return _iconButton?.Icon;
+			return IconButton?.Icon;
 		}
 	}
 
@@ -172,15 +173,17 @@ public class DropdownButton : Widget
 
 		Icon = icon ?? "layers";
 
-		_iconButton = new IconButton( Icon );
-		_iconButton.Background = Color.Transparent;
-		_iconButton.Foreground = Theme.ControlText;
-		_iconButton.IconSize = 20;
+		IconButton = new IconButton( Icon );
+		IconButton.Background = Color.Transparent;
+		IconButton.Foreground = Theme.ControlText;
+		IconButton.IconSize = 20;
 
-		Layout.Add( _iconButton );
+		Layout.Add( IconButton );
 
 		Text = title;
-		Layout.Add( new Label( title ) );
+
+		Label = new Label( title );
+		Layout.Add( Label );
 	}
 
 	protected override void OnMouseClick( MouseEvent e )
@@ -194,6 +197,10 @@ public class DropdownButton : Widget
 		Dropdown.Text = Text;
 		Dropdown.Icon = Icon;
 		Dropdown.ClosePopup();
+		Dropdown.Rebuild();
+
+		if ( Dropdown.OnValueChanged is not null )
+			Dropdown.OnValueChanged();
 	}
 
 	protected override void OnPaint()
@@ -206,9 +213,15 @@ public class DropdownButton : Widget
 		Paint.SetBrushAndPen( Theme.ControlBackground );
 		Paint.DrawRect( LocalRect );
 
+		if ( !Enabled )
+		{
+			Paint.SetBrushAndPen( Theme.Red.WithAlpha( 0.4f ) );
+			Paint.DrawRect( LocalRect );
+		}
+
 		if ( Paint.HasMouseOver )
 		{
-			Paint.SetBrushAndPen( Theme.WidgetBackground );
+			Paint.SetBrushAndPen( Enabled ? Theme.WidgetBackground : Theme.Red.WithAlpha( 0.6f ) );
 			Paint.DrawRect( rect );
 		}
 
