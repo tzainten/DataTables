@@ -184,7 +184,6 @@ public class DropdownButton : Widget
 			Paint.ClearBrush();
 
 			Paint.DrawIcon( IconButton.LocalRect, Icon, 24 );
-			Log.Info( Icon );
 
 			return true;
 		};
