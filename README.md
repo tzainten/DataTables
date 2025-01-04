@@ -16,16 +16,6 @@ DataTable table = ResourceLibrary.Get<DataTable>("your_data_table.dt");
 int Number = table.Get<YourRowStruct>("NewEntry_0").Number;
 ```
 
-## Insert a new row in C#
-:warning: This won't save to disk. Maybe this will be implemented later.
-```csharp
-YourRowStruct yourRowStruct = new();
-yourRowStruct.Number = 69;
-
-DataTable table = ResourceLibrary.Get<DataTable>("your_data_table.dt");
-table.Add("UniqueRowName", yourRowStruct); 
-```
-
 # Instanced Attribute
 
 This attribute lets you create subclasses of an object inside a List.
