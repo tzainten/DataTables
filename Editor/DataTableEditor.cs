@@ -229,7 +229,7 @@ public class DataTableEditor : DockWindow
 		Widget tableView = new(this){ WindowTitle = "Table View" };
 		tableView.Layout = Layout.Column();
 		tableView.SetWindowIcon( "equalizer" );
-		tableView.Name = "Data Table";
+		tableView.Name = "Table View";
 
 		_tableView = new TableView( tableView );
 
