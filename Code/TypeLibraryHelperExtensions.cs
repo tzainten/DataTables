@@ -7,7 +7,7 @@ using Sandbox.Internal;
 
 namespace DataTables;
 
-public static class TypeLibraryHelperExtensions
+internal static class TypeLibraryHelperExtensions
 {
 	private static PropertyDescription _currentProperty;
 
