@@ -195,10 +195,11 @@ public class DataTableEditor : DockWindow
 		ScrollArea scroll = new ScrollArea( _splitter );
 		scroll.Canvas = new Widget( scroll )
 		{
-			Layout = Layout.Column(),
+			Layout = Layout.Row(),
 			VerticalSizeMode = SizeMode.CanGrow | SizeMode.Expand
 		};
 
+		scroll.Canvas.Layout.AddStretchCell();
 		scroll.Canvas.OnPaintOverride = () =>
 		{
 			Paint.ClearPen();
