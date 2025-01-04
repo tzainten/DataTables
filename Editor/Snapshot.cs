@@ -1,23 +1,27 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Nodes;
 using DataTables;
 
 namespace DataTablesEditor;
 
-public class Snapshot
+internal class Snapshot
 {
-	private JsonObject _object = new();
-	private DataTable _dataTable;
+	private DataTableEditor _editor;
 
-	public Snapshot( DataTable dataTable )
+	private List<RowStruct> _entries = new();
+	private int _entryCount;
+
+	public Snapshot( DataTableEditor editor )
 	{
-		_dataTable = dataTable;
-		_object = Json.Serialize( _dataTable );
+		_editor = editor;
+		_entries = editor.InternalEntries.ToList();
+		_entryCount = editor.EntryCount;
 	}
 
 	public void Restore()
 	{
-		var dataTable = Json.Deserialize<DataTable>( _object.ToJsonString() );
-		_dataTable.StructEntries = dataTable.StructEntries;
+		_editor.InternalEntries = _entries.ToList();
+		_editor.EntryCount = _entryCount;
 	}
 }

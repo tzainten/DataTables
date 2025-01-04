@@ -24,8 +24,8 @@ public class DataTableEditor : DockWindow
 
 	private ToolBar _toolBar;
 
-	private List<RowStruct> _internalEntries = new();
-	private int _entryCount = 0;
+	public List<RowStruct> InternalEntries = new();
+	public int EntryCount = 0;
 
 	private TableView _tableView;
 
@@ -51,12 +51,13 @@ public class DataTableEditor : DockWindow
 
 		_previousProperties = _structType.Properties.ToArray();
 
-		_entryCount = _dataTable.EntryCount;
+		EntryCount = _dataTable.EntryCount;
+
 		foreach ( var entry in _dataTable.StructEntries )
-			_internalEntries.Add( entry );
+			InternalEntries.Add( entry );
 
 		JsonArray array = new();
-		Json.SerializeArray( array, _internalEntries );
+		Json.SerializeArray( array, InternalEntries );
 		string json = array.ToJsonString();
 		_previousJson = json;
 
@@ -78,17 +79,13 @@ public class DataTableEditor : DockWindow
 
 	private Action GetSnapshot()
 	{
-		var state = new Snapshot( _dataTable );
+		var state = new Snapshot( this );
 		return () => RestoreState( state );
 	}
 
 	private void RestoreState( Snapshot oldState )
 	{
 		oldState.Restore();
-		_entryCount = _dataTable.EntryCount;
-		_internalEntries.Clear();
-		foreach ( var entry in _dataTable.StructEntries )
-			_internalEntries.Add( entry );
 		MarkUnsaved();
 		PopulateEditor();
 	}
@@ -137,8 +134,11 @@ public class DataTableEditor : DockWindow
 
 		if ( _mouseUpFrames > 2 && _timeSinceChange > 0.5f )
 		{
+			if ( InternalEntries is null )
+				return;
+
 			JsonArray array = new();
-			Json.SerializeArray( array, _internalEntries );
+			Json.SerializeArray( array, InternalEntries );
 			string json = array.ToJsonString();
 			if ( json != _previousJson )
 			{
@@ -186,10 +186,10 @@ public class DataTableEditor : DockWindow
 		if ( _splitter is not null && _splitter.IsValid )
 			_splitter.DestroyChildren();
 
-		for ( int i = _internalEntries.Count - 1; i >= 0; i-- )
+		for ( int i = InternalEntries.Count - 1; i >= 0; i-- )
 		{
-			if ( _internalEntries[i] is null )
-				_internalEntries.RemoveAt( i );
+			if ( InternalEntries[i] is null )
+				InternalEntries.RemoveAt( i );
 		}
 
 		ScrollArea scroll = new ScrollArea( _splitter );
@@ -254,13 +254,13 @@ public class DataTableEditor : DockWindow
 			};
 		}
 
-		_tableView.SetItems( _internalEntries.ToList() );
+		_tableView.SetItems( InternalEntries.ToList() );
 		_tableView.FillHeader();
 
-		if ( _internalEntries.Count > 0 )
+		if ( InternalEntries.Count > 0 )
 		{
-			_tableView.ListView.Selection.Add( _internalEntries[0] );
-			PopulateControlSheet( _internalEntries[0].GetSerialized() );
+			_tableView.ListView.Selection.Add( InternalEntries[0] );
+			PopulateControlSheet( InternalEntries[0].GetSerialized() );
 		}
 
 		_tableView.ItemClicked = o =>
@@ -371,9 +371,9 @@ public class DataTableEditor : DockWindow
 		{
 			var row = selection as RowStruct;
 			var o = TypeLibrary.Clone<RowStruct>( row );
-			o.RowName = $"NewEntry_{_entryCount++}";
+			o.RowName = $"NewEntry_{EntryCount++}";
 
-			_internalEntries.Add( o );
+			InternalEntries.Add( o );
 			_tableView.AddItem( o );
 
 			PopulateControlSheet( o.GetSerialized() );
@@ -401,21 +401,21 @@ public class DataTableEditor : DockWindow
 		{
 			var row = selection as RowStruct;
 
-			var tuple = _internalEntries.Index().First( x => x.Item.RowName == row.RowName );
+			var tuple = InternalEntries.Index().First( x => x.Item.RowName == row.RowName );
 			index = tuple.Index - 1;
 
 			_tableView.ListView.RemoveItem( selection );
-			_internalEntries.Remove( row );
+			InternalEntries.Remove( row );
 		}
 
 		_tableView.ListView.Selection.Clear();
 
 		if ( index < 0 )
 			index = 0;
-		if ( index < _internalEntries.Count )
+		if ( index < InternalEntries.Count )
 		{
-			_tableView.ListView.Selection.Add( _internalEntries[index] );
-			PopulateControlSheet( _internalEntries[index].GetSerialized() );
+			_tableView.ListView.Selection.Add( InternalEntries[index] );
+			PopulateControlSheet( InternalEntries[index].GetSerialized() );
 		}
 	}
 
@@ -424,9 +424,9 @@ public class DataTableEditor : DockWindow
 		MarkUnsaved();
 
 		var o = TypeLibrary.Create<RowStruct>( _dataTable.StructType );
-		o.RowName = $"NewEntry_{_entryCount++}";
+		o.RowName = $"NewEntry_{EntryCount++}";
 
-		_internalEntries.Add( o );
+		InternalEntries.Add( o );
 		_tableView.AddItem( o );
 
 		_tableView.ListView.Selection.Clear();
@@ -460,9 +460,9 @@ public class DataTableEditor : DockWindow
 		{
 			var row = selection as RowStruct;
 			var o = TypeLibrary.Clone<RowStruct>( row );
-			o.RowName = $"NewEntry_{_entryCount++}";
+			o.RowName = $"NewEntry_{EntryCount++}";
 
-			_internalEntries.Add( o );
+			InternalEntries.Add( o );
 			_tableView.AddItem( o );
 
 			PopulateControlSheet( o.GetSerialized() );
@@ -489,14 +489,14 @@ public class DataTableEditor : DockWindow
 	{
 		MarkSaved();
 
-		if ( _internalEntries.Count == 0 )
-			_entryCount = 0;
+		if ( InternalEntries.Count == 0 )
+			EntryCount = 0;
 
 		_dataTable.StructEntries.Clear();
-		foreach ( var entry in _internalEntries )
+		foreach ( var entry in InternalEntries )
 			_dataTable.StructEntries.Add( entry );
 
-		_dataTable.EntryCount = _entryCount;
+		_dataTable.EntryCount = EntryCount;
 		_asset.SaveToDisk( _dataTable );
 	}
 
