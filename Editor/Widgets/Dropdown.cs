@@ -177,6 +177,17 @@ public class DropdownButton : Widget
 		IconButton.Background = Color.Transparent;
 		IconButton.Foreground = Theme.ControlText;
 		IconButton.IconSize = 20;
+		IconButton.OnPaintOverride = () =>
+		{
+			Paint.Antialiasing = true;
+			Paint.SetPen( IconButton.Foreground.WithAlpha( 0.7f ), 3.0f );
+			Paint.ClearBrush();
+
+			Paint.DrawIcon( IconButton.LocalRect, Icon, 24 );
+			Log.Info( Icon );
+
+			return true;
+		};
 
 		Layout.Add( IconButton );
 
@@ -215,13 +226,13 @@ public class DropdownButton : Widget
 
 		if ( !Enabled )
 		{
-			Paint.SetBrushAndPen( Theme.Red.WithAlpha( 0.4f ) );
+			Paint.SetBrushAndPen( Theme.Red.WithAlpha( 0.1f ) );
 			Paint.DrawRect( LocalRect );
 		}
 
 		if ( Paint.HasMouseOver )
 		{
-			Paint.SetBrushAndPen( Enabled ? Theme.WidgetBackground : Theme.Red.WithAlpha( 0.6f ) );
+			Paint.SetBrushAndPen( Enabled ? Theme.WidgetBackground : Theme.Red.WithAlpha( 0.2f ) );
 			Paint.DrawRect( rect );
 		}
 

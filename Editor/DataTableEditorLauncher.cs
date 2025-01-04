@@ -39,7 +39,8 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 		dropdown.Text = "None";
 		dropdown.PopulatePopup = widget =>
 		{
-			var structTypes = TypeLibrary.GetTypes().Where( x => x.TargetType.IsSubclassOf( typeof(RowStruct) ) );
+			var structTypes = TypeLibrary.GetTypes().Where( x => x.TargetType.IsSubclassOf( typeof(RowStruct) ) )
+				.OrderBy( x => x.Name );
 
 			foreach ( var structType in structTypes )
 			{
@@ -64,8 +65,7 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 					btn.Icon = "error";
 					btn.ToolTip = "\u26a0\ufe0f This RowStruct type contains generic properties that are not supported.";
 					btn.Label.Color = Color.White;
-					btn.IconButton.Foreground = Color.White;
-					btn.IconButton.TranslucentBackground = false;
+					btn.IconButton.Foreground = Theme.Red;
 				}
 
 				widget.Layout.Add( btn );
