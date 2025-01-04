@@ -25,7 +25,7 @@ public class DataTable : GameResource
 		return (T)StructEntries.Find( x => x.RowName == rowName );
 	}
 
-	public void Fix()
+	private void Fix()
 	{
 		var dataTable = Json.Deserialize<DataTable>( FileSystem.Mounted.ReadAllText( ResourcePath ) );
 		StructType = dataTable.StructType;
