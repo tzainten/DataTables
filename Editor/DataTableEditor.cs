@@ -285,6 +285,15 @@ public class DataTableEditor : DockWindow
 		DockManager.Update();
 
 		_defaultDockState = DockManager.State;
+
+		if ( StateCookie != "DataTableEditor" )
+		{
+			StateCookie = "DataTableEditor";
+		}
+		else
+		{
+			RestoreFromStateCookie();
+		}
 	}
 
 	private void PopulateControlSheet( SerializedObject so )
@@ -506,6 +515,10 @@ public class DataTableEditor : DockWindow
 					_dataTable.EntryCount = 0;
 				Close();
 			});
+		}
+		else
+		{
+			SaveToStateCookie();
 		}
 
 		return !_isUnsaved;
