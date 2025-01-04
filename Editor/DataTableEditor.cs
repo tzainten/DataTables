@@ -157,10 +157,6 @@ public class DataTableEditor : DockWindow
 		if ( !Visible )
 			return;
 
-		DockManager.Clear();
-		DockManager.RegisterDockType( "Data Table", "equalizer", null, false );
-		DockManager.RegisterDockType( "Row Editor", "tune", null, false );
-
 		PropertyDescription[] properties = _structType.Properties.ToArray();
 		foreach ( var property in properties )
 		{
@@ -182,6 +178,10 @@ public class DataTableEditor : DockWindow
 				return;
 			}
 		}
+
+		DockManager.Clear();
+		DockManager.RegisterDockType( "Data Table", "equalizer", null, false );
+		DockManager.RegisterDockType( "Row Editor", "tune", null, false );
 
 		if ( _splitter is not null && _splitter.IsValid )
 			_splitter.DestroyChildren();
