@@ -114,13 +114,33 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 		_asset = asset;
 		_dataTable = _asset.LoadResource<DataTable>();
 
-		var type = TypeLibrary.GetType( _dataTable.StructType );
-		if ( type is null || !TypeLibrary.GetTypes().Any( x => x.TargetType.IsSubclassOf( typeof(RowStruct) ) ) )
+		var structType = TypeLibrary.GetType( _dataTable.StructType );
+		if ( structType is null || !TypeLibrary.GetTypes().Any( x => x.TargetType.IsSubclassOf( typeof(RowStruct) ) ) )
 		{
 			FillLayout();
 		}
 		else
 		{
+			foreach ( var property in structType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+			{
+				var type = property.PropertyType;
+				bool isList = type.IsAssignableTo( typeof(IList) );
+				bool isDictionary = type.IsAssignableTo( typeof(IDictionary) );
+
+				if ( type.IsGenericType && (!isList && !isDictionary) )
+				{
+					StructDialog popup = new StructDialog( $"Data Table Editor - {asset.Path}" );
+					popup.DeleteOnClose = true;
+					popup.OnWindowClosed = delegate
+					{
+						Close();
+					};
+					popup.SetModal(on: true, application: true);
+					popup.Hide();
+					popup.Show();
+					return;
+				}
+			}
 			OpenEditor();
 		}
 	}
