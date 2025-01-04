@@ -25,18 +25,6 @@ public class DataTable : GameResource
 		return (T)StructEntries.Find( x => x.RowName == rowName );
 	}
 
-	[Title( "Add Row - {T|RowStruct}" ), Description("WARNING: This will not save to disk!")]
-	public bool Add( string rowName, RowStruct rowStruct )
-	{
-		if ( StructEntries.Find( x => x.RowName == rowName ) is not null )
-			return false;
-
-		rowStruct.RowName = rowName;
-		StructEntries.Add( rowStruct );
-
-		return true;
-	}
-
 	public void Fix()
 	{
 		var dataTable = Json.Deserialize<DataTable>( FileSystem.Mounted.ReadAllText( ResourcePath ) );
