@@ -43,6 +43,7 @@ public class DataTableEditor : DockWindow
 	private string _defaultDockState;
 
 	private UndoStack _undoStack = new();
+	private UndoHistory _undoHistory;
 
 	public DataTableEditor( Asset asset, DataTable dataTable )
 	{
@@ -213,6 +214,7 @@ public class DataTableEditor : DockWindow
 		DockManager.Clear();
 		DockManager.RegisterDockType( "Table View", "equalizer", null, false );
 		DockManager.RegisterDockType( "Row Editor", "tune", null, false );
+		DockManager.RegisterDockType( "Undo History", "history", null, false );
 
 		if ( _splitter is not null && _splitter.IsValid )
 			_splitter.DestroyChildren();
@@ -308,10 +310,16 @@ public class DataTableEditor : DockWindow
 
 		rowEditor.Layout.Add( scroll );
 
+		_undoHistory = new UndoHistory( this, _undoStack );
+		_undoHistory.OnUndo = Undo;
+		_undoHistory.OnRedo = Redo;
+		_undoHistory.OnHistorySelected = SetUndoLevel;
+
 		var flags = DockManager.DockProperty.HideCloseButton | DockManager.DockProperty.HideOnClose | DockManager.DockProperty.DisallowFloatWindow;
 
 		DockManager.AddDock( null, tableView, DockArea.Top, flags );
 		DockManager.AddDock( null, rowEditor, DockArea.Bottom, flags );
+		DockManager.AddDock( rowEditor, _undoHistory, DockArea.Inside, flags );
 		DockManager.RaiseDock( "Table View" );
 		DockManager.Update();
 
@@ -320,6 +328,23 @@ public class DataTableEditor : DockWindow
 		if ( StateCookie != "DataTableEditor" )
 		{
 			StateCookie = "DataTableEditor";
+		}
+	}
+
+	private void SetUndoLevel( int level )
+	{
+		if ( _undoStack.SetUndoLevel( level ) is UndoOp op )
+		{
+			Log.Info( $"SetUndoLevel ({op.name})" );
+
+			Json._currentProperty = null; // @TODO: This is dumb. DO BETTER!
+			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
+			Json._currentProperty = null;
+			_previousJson = SerializeEntries();
+			MarkUnsaved();
+			PopulateEditor();
+
+			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 		}
 	}
 
