@@ -54,6 +54,7 @@ public class CloseDialog : BaseWindow
 		row.Add( cancelBtn );
 		Layout.AddStretchCell();
 
+		SetModal( true, true );
 		Show();
 	}
 
