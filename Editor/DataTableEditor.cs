@@ -81,9 +81,7 @@ public class DataTableEditor : DockWindow
 			selectedNames.Add( row.RowName );
 		}
 
-		_previousEditorState = new EditorState();
-		_previousEditorState.SelectedNames = selectedNames;
-		_previousEditorState.SheetRowName = _sheetObject.RowName;
+		_previousEditorState = new EditorState(selectedNames, _sheetObject);
 	}
 
 	private string SerializeEntries()
@@ -216,9 +214,7 @@ public class DataTableEditor : DockWindow
 					selectedNames.Add( row.RowName );
 				}
 
-				EditorState state = new();
-				state.SelectedNames = selectedNames;
-				state.SheetRowName = _sheetObject.RowName;
+				EditorState state = new(selectedNames, _sheetObject);
 
 				_undoStack.PushUndo("Modified a RowStruct", _previousJson, _previousEditorState );
 				OnUndoPushed();
@@ -573,9 +569,7 @@ public class DataTableEditor : DockWindow
 			selectedNames.Add( row.RowName );
 		}
 
-		_previousEditorState = new();
-		_previousEditorState.SelectedNames = selectedNames;
-		_previousEditorState.SheetRowName = _sheetObject.RowName;
+		_previousEditorState = new(selectedNames, _sheetObject);
 
 		object _selection = null;
 
@@ -609,9 +603,7 @@ public class DataTableEditor : DockWindow
 			selectedNames.Add( row.RowName );
 		}
 
-		EditorState state = new();
-		state.SelectedNames = selectedNames;
-		state.SheetRowName = _sheetObject.RowName;
+		EditorState state = new(selectedNames, _sheetObject);
 
 		var json = SerializeEntries();
 		_undoStack.PushUndo( $"Remove Row(s)", _previousJson, _previousEditorState );
@@ -634,9 +626,7 @@ public class DataTableEditor : DockWindow
 			selectedNames.Add( row.RowName );
 		}
 
-		_previousEditorState = new();
-		_previousEditorState.SelectedNames = selectedNames;
-		_previousEditorState.SheetRowName = _sheetObject.RowName;
+		_previousEditorState = new(selectedNames, _sheetObject);
 
 		var o = TypeLibrary.Create<RowStruct>( _dataTable.StructType );
 		o.RowName = $"NewEntry_{EntryCount++}";
@@ -658,9 +648,7 @@ public class DataTableEditor : DockWindow
 			selectedNames.Add( row.RowName );
 		}
 
-		EditorState state = new();
-		state.SelectedNames = selectedNames;
-		state.SheetRowName = _sheetObject.RowName;
+		EditorState state = new(selectedNames, _sheetObject);
 
 		var json = SerializeEntries();
 		_undoStack.PushUndo( $"Add Entry {o.RowName}", _previousJson, _previousEditorState );

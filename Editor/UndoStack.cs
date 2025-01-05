@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using DataTables;
 using Sandbox.Diagnostics;
 
 namespace DataTablesEditor;
@@ -17,6 +18,14 @@ public class EditorState
 {
 	public List<string> SelectedNames;
 	public string SheetRowName;
+
+	public EditorState( List<string> names, RowStruct row )
+	{
+		SelectedNames = names;
+
+		if ( row is not null )
+			SheetRowName = row.RowName;
+	}
 }
 
 public class UndoStack
