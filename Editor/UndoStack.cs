@@ -9,6 +9,14 @@ public class UndoOp
 	public string name;
 	public string undoBuffer;
 	public string redoBuffer;
+	public EditorState UndoEditorState;
+	public EditorState RedoEditorState;
+}
+
+public class EditorState
+{
+	public List<string> SelectedNames;
+	public string SheetRowName;
 }
 
 public class UndoStack
@@ -27,7 +35,7 @@ public class UndoStack
 
 	public IEnumerable<string> Names => _undoStack.Select( x => x.name );
 
-	public void PushUndo( string name, string buffer )
+	public void PushUndo( string name, string buffer, EditorState editorState )
 	{
 		Assert.False( _redoPending, $"Pending Redo ({UndoName})" );
 
@@ -39,16 +47,17 @@ public class UndoStack
 			_undoStack.RemoveRange( _undoStack.Count - count, count );
 		}
 
-		_undoStack.Add( new() { name = name, undoBuffer = buffer } );
+		_undoStack.Add( new() { name = name, undoBuffer = buffer, UndoEditorState = editorState } );
 		_undoLevel++;
 	}
 
-	public void PushRedo( string buffer )
+	public void PushRedo( string buffer, EditorState editorState )
 	{
 		Assert.True( _redoPending );
 
 		_redoPending = false;
 		_undoStack[_undoLevel - 1].redoBuffer = buffer;
+		_undoStack[_undoLevel - 1].RedoEditorState = editorState;
 	}
 
 	public UndoOp Undo()

@@ -35,6 +35,7 @@ public class DataTableEditor : DockWindow
 	private bool _isUnsaved = false;
 
 	private string _previousJson;
+	private EditorState _previousEditorState;
 
 	private PropertyDescription[] _previousProperties;
 
@@ -72,6 +73,17 @@ public class DataTableEditor : DockWindow
 
 		Show();
 		PopulateEditor();
+
+		List<string> selectedNames = new();
+
+		foreach ( RowStruct row in _tableView.ListView.Selection )
+		{
+			selectedNames.Add( row.RowName );
+		}
+
+		_previousEditorState = new EditorState();
+		_previousEditorState.SelectedNames = selectedNames;
+		_previousEditorState.SheetRowName = _sheetObject.RowName;
 	}
 
 	private string SerializeEntries()
@@ -94,6 +106,19 @@ public class DataTableEditor : DockWindow
 			//PopulateEditor();
 			UpdateViewAndEditor();
 
+			EditorState undoState = op.UndoEditorState;
+			_tableView.ListView.Selection.Clear();
+			foreach ( var rowName in undoState.SelectedNames )
+			{
+				var obj = InternalEntries.FirstOrDefault( x => x.RowName == rowName );
+				if ( obj is not null )
+					_tableView.ListView.Selection.Add( obj );
+			}
+
+			var sheetObj = InternalEntries.FirstOrDefault( x => x.RowName == undoState.SheetRowName );
+			if ( sheetObj is not null )
+				PopulateControlSheet( sheetObj );
+
 			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 		}
 	}
@@ -110,6 +135,19 @@ public class DataTableEditor : DockWindow
 			MarkUnsaved();
 			//PopulateEditor();
 			UpdateViewAndEditor();
+
+			EditorState redoState = op.RedoEditorState;
+			_tableView.ListView.Selection.Clear();
+			foreach ( var rowName in redoState.SelectedNames )
+			{
+				var obj = InternalEntries.FirstOrDefault( x => x.RowName == rowName );
+				if ( obj is not null )
+					_tableView.ListView.Selection.Add( obj );
+			}
+
+			var sheetObj = InternalEntries.FirstOrDefault( x => x.RowName == redoState.SheetRowName );
+			if ( sheetObj is not null )
+				PopulateControlSheet( sheetObj );
 
 			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 		}
@@ -171,10 +209,22 @@ public class DataTableEditor : DockWindow
 			string json = SerializeEntries();
 			if ( json != _previousJson )
 			{
-				_undoStack.PushUndo("Modified a RowStruct", _previousJson  );
+				List<string> selectedNames = new();
+
+				foreach ( RowStruct row in _tableView.ListView.Selection )
+				{
+					selectedNames.Add( row.RowName );
+				}
+
+				EditorState state = new();
+				state.SelectedNames = selectedNames;
+				state.SheetRowName = _sheetObject.RowName;
+
+				_undoStack.PushUndo("Modified a RowStruct", _previousJson, _previousEditorState );
 				OnUndoPushed();
-				_undoStack.PushRedo( json );
+				_undoStack.PushRedo( json, state );
 				_previousJson = json;
+				_previousEditorState = state;
 				MarkUnsaved();
 				_timeSinceChange = 0;
 			}
@@ -219,12 +269,12 @@ public class DataTableEditor : DockWindow
 		if ( InternalEntries.Count > 0 )
 		{
 			_tableView.ListView.Selection.Add( InternalEntries[0] );
-			PopulateControlSheet( InternalEntries[0].GetSerialized() );
+			PopulateControlSheet( InternalEntries[0] );
 		}
 
 		_tableView.ItemClicked = o =>
 		{
-			PopulateControlSheet( o.GetSerialized() );
+			PopulateControlSheet( o );
 		};
 
 		_tableEditor.Layout.Add( _tableView );
@@ -345,12 +395,12 @@ public class DataTableEditor : DockWindow
 		if ( InternalEntries.Count > 0 )
 		{
 			_tableView.ListView.Selection.Add( InternalEntries[0] );
-			PopulateControlSheet( InternalEntries[0].GetSerialized() );
+			PopulateControlSheet( InternalEntries[0] );
 		}
 
 		_tableView.ItemClicked = o =>
 		{
-			PopulateControlSheet( o.GetSerialized() );
+			PopulateControlSheet( o );
 		};
 
 		_tableEditor.Layout.Add( _tableView );
@@ -405,10 +455,13 @@ public class DataTableEditor : DockWindow
 		}
 	}
 
-	private void PopulateControlSheet( SerializedObject so )
+	private RowStruct _sheetObject;
+
+	private void PopulateControlSheet( object so )
 	{
 		_sheet.Clear( true );
-		_sheet.AddObject( so, SheetFilter );
+		_sheet.AddObject( so.GetSerialized(), SheetFilter );
+		_sheetObject = so as RowStruct;
 	}
 
 	public void BuildMenuBar()
@@ -491,7 +544,7 @@ public class DataTableEditor : DockWindow
 			InternalEntries.Add( o );
 			_tableView.AddItem( o );
 
-			PopulateControlSheet( o.GetSerialized() );
+			PopulateControlSheet( o );
 
 			newSelections.Add( o );
 		}
@@ -513,6 +566,19 @@ public class DataTableEditor : DockWindow
 
 		_previousJson = SerializeEntries();
 
+		List<string> selectedNames = new();
+
+		foreach ( RowStruct row in _tableView.ListView.Selection )
+		{
+			selectedNames.Add( row.RowName );
+		}
+
+		_previousEditorState = new();
+		_previousEditorState.SelectedNames = selectedNames;
+		_previousEditorState.SheetRowName = _sheetObject.RowName;
+
+		object _selection = null;
+
 		var index = -1;
 		foreach ( var selection in _tableView.ListView.Selection )
 		{
@@ -532,14 +598,27 @@ public class DataTableEditor : DockWindow
 		if ( index < InternalEntries.Count )
 		{
 			_tableView.ListView.Selection.Add( InternalEntries[index] );
-			PopulateControlSheet( InternalEntries[index].GetSerialized() );
+
+			PopulateControlSheet( InternalEntries[index] );
 		}
 
+		selectedNames = new();
+
+		foreach ( RowStruct row in _tableView.ListView.Selection )
+		{
+			selectedNames.Add( row.RowName );
+		}
+
+		EditorState state = new();
+		state.SelectedNames = selectedNames;
+		state.SheetRowName = _sheetObject.RowName;
+
 		var json = SerializeEntries();
-		_undoStack.PushUndo( $"Remove Row(s)", _previousJson );
+		_undoStack.PushUndo( $"Remove Row(s)", _previousJson, _previousEditorState );
 		OnUndoPushed();
-		_undoStack.PushRedo( json );
+		_undoStack.PushRedo( json, state );
 		_previousJson = json;
+		_previousEditorState = state;
 	}
 
 	private void AddEntry()
@@ -547,6 +626,17 @@ public class DataTableEditor : DockWindow
 		MarkUnsaved();
 
 		_previousJson = SerializeEntries();
+
+		List<string> selectedNames = new();
+
+		foreach ( RowStruct row in _tableView.ListView.Selection )
+		{
+			selectedNames.Add( row.RowName );
+		}
+
+		_previousEditorState = new();
+		_previousEditorState.SelectedNames = selectedNames;
+		_previousEditorState.SheetRowName = _sheetObject.RowName;
 
 		var o = TypeLibrary.Create<RowStruct>( _dataTable.StructType );
 		o.RowName = $"NewEntry_{EntryCount++}";
@@ -557,15 +647,27 @@ public class DataTableEditor : DockWindow
 		_tableView.ListView.Selection.Clear();
 		_tableView.ListView.Selection.Add( o );
 
-		PopulateControlSheet( o.GetSerialized() );
+		PopulateControlSheet( o );
 
 		_tableView.ListView.ScrollTo( o );
 
+		selectedNames = new();
+
+		foreach ( RowStruct row in _tableView.ListView.Selection )
+		{
+			selectedNames.Add( row.RowName );
+		}
+
+		EditorState state = new();
+		state.SelectedNames = selectedNames;
+		state.SheetRowName = _sheetObject.RowName;
+
 		var json = SerializeEntries();
-		_undoStack.PushUndo( $"Add Entry {o.RowName}", _previousJson );
+		_undoStack.PushUndo( $"Add Entry {o.RowName}", _previousJson, _previousEditorState );
 		OnUndoPushed();
-		_undoStack.PushRedo( json );
+		_undoStack.PushRedo( json, state );
 		_previousJson = json;
+		_previousEditorState = state;
 	}
 
 	private List<object> _clipboard = new();
@@ -596,7 +698,7 @@ public class DataTableEditor : DockWindow
 			InternalEntries.Add( o );
 			_tableView.AddItem( o );
 
-			PopulateControlSheet( o.GetSerialized() );
+			PopulateControlSheet( o );
 
 			newSelections.Add( o );
 		}
