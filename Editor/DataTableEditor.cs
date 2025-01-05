@@ -32,8 +32,6 @@ public class DataTableEditor : DockWindow
 
 	private ControlSheet _sheet;
 
-	private Splitter _splitter;
-
 	private bool _isUnsaved = false;
 
 	private string _previousJson;
@@ -74,7 +72,6 @@ public class DataTableEditor : DockWindow
 
 		Show();
 		PopulateEditor();
-		RestoreFromStateCookie();
 	}
 
 	private string SerializeEntries()
@@ -89,14 +86,13 @@ public class DataTableEditor : DockWindow
 	{
 		if ( _undoStack.Undo() is UndoOp op )
 		{
-			Log.Info( $"Undo ({op.name})" );
-
 			Json._currentProperty = null;
 			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.undoBuffer )?.AsArray(), typeof(List<RowStruct>) );
 			Json._currentProperty = null;
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
-			PopulateEditor();
+			//PopulateEditor();
+			UpdateViewAndEditor();
 
 			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 		}
@@ -107,14 +103,13 @@ public class DataTableEditor : DockWindow
 	{
 		if ( _undoStack.Redo() is UndoOp op )
 		{
-			Log.Info( $"Redo ({op.name})" );
-
 			Json._currentProperty = null; // @TODO: This is dumb. DO BETTER!
 			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
 			Json._currentProperty = null;
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
-			PopulateEditor();
+			//PopulateEditor();
+			UpdateViewAndEditor();
 
 			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 		}
@@ -154,6 +149,8 @@ public class DataTableEditor : DockWindow
 	[EditorEvent.Frame]
 	private void Tick()
 	{
+		_undoHistory.UndoLevel = _undoStack.UndoLevel;
+
 		Title = EvaluateTitle();
 
 		_addOption.Enabled = !Game.IsPlaying;
@@ -175,6 +172,7 @@ public class DataTableEditor : DockWindow
 			if ( json != _previousJson )
 			{
 				_undoStack.PushUndo("Modified a RowStruct", _previousJson  );
+				OnUndoPushed();
 				_undoStack.PushRedo( json );
 				_previousJson = json;
 				MarkUnsaved();
@@ -183,88 +181,16 @@ public class DataTableEditor : DockWindow
 		}
 	}
 
-	[EditorEvent.Hotload]
-	private void PopulateEditor()
+	private void UpdateViewAndEditor()
 	{
 		if ( !Visible )
 			return;
 
-		PropertyDescription[] properties = _structType.Properties.ToArray();
-		foreach ( var property in properties )
-		{
-			var type = property.PropertyType;
-			bool isList = type.IsAssignableTo( typeof(IList) );
-			bool isDictionary = type.IsAssignableTo( typeof(IDictionary) );
+		_tableEditor.Layout.Clear( true );
 
-			if ( type.IsGenericType && (!isList && !isDictionary) )
-			{
-				StructDialog popup = new StructDialog( $"Data Table Editor - {_asset.Path}" );
-				popup.DeleteOnClose = true;
-				popup.OnWindowClosed = delegate
-				{
-					Close();
-				};
-				popup.SetModal(on: true, application: true);
-				popup.Hide();
-				popup.Show();
-				return;
-			}
-		}
+		_tableView = new TableView( _tableEditor );
 
-		DockManager.Clear();
-		DockManager.RegisterDockType( "Table View", "equalizer", null, false );
-		DockManager.RegisterDockType( "Row Editor", "tune", null, false );
-		DockManager.RegisterDockType( "Undo History", "history", null, false );
-
-		if ( _splitter is not null && _splitter.IsValid )
-			_splitter.DestroyChildren();
-
-		for ( int i = InternalEntries.Count - 1; i >= 0; i-- )
-		{
-			if ( InternalEntries[i] is null )
-				InternalEntries.RemoveAt( i );
-		}
-
-		ScrollArea scroll = new ScrollArea( _splitter );
-		scroll.Canvas = new Widget( scroll )
-		{
-			Layout = Layout.Row(),
-			VerticalSizeMode = SizeMode.CanGrow | SizeMode.Expand
-		};
-
-		scroll.Canvas.Layout.AddStretchCell();
-		scroll.Canvas.OnPaintOverride = () =>
-		{
-			Paint.ClearPen();
-			Paint.SetBrush( Theme.WidgetBackground );
-			Paint.DrawRect( scroll.Canvas.LocalRect );
-
-			return false;
-		};
-
-		_sheet = new ControlSheet();
-
-		var layout = scroll.Canvas.Layout;
-
-		var sheetCanvas = new Widget( scroll.Canvas );
-		sheetCanvas.MinimumHeight = 200;
-		sheetCanvas.Layout = Layout.Column();
-		sheetCanvas.Layout.Add( _sheet );
-		sheetCanvas.Layout.AddStretchCell();
-
-		layout.Add( sheetCanvas );
-		layout.AddStretchCell();
-
-		var structType = TypeLibrary.GetType( _dataTable.StructType );
-		if ( structType is null )
-			return;
-
-		Widget tableView = new(this){ WindowTitle = "Table View" };
-		tableView.Layout = Layout.Column();
-		tableView.SetWindowIcon( "equalizer" );
-		tableView.Name = "Table View";
-
-		_tableView = new TableView( tableView );
+		var structType = TypeLibrary.GetType( _structType.TargetType );
 
 		var rowNameCol = _tableView.AddColumn();
 		rowNameCol.Name = "RowName";
@@ -301,14 +227,135 @@ public class DataTableEditor : DockWindow
 			PopulateControlSheet( o.GetSerialized() );
 		};
 
-		tableView.Layout.Add( _tableView );
+		_tableEditor.Layout.Add( _tableView );
+	}
 
-		Widget rowEditor = new(this){ WindowTitle = "Row Editor" };
-		rowEditor.Layout = Layout.Column();
-		rowEditor.SetWindowIcon( "tune" );
-		rowEditor.Name = "Row Editor";
+	private Widget _rowEditor;
+	private Widget _tableEditor;
 
-		rowEditor.Layout.Add( scroll );
+	[EditorEvent.Hotload]
+	private void PopulateEditor()
+	{
+		if ( !Visible )
+			return;
+
+		PropertyDescription[] properties = _structType.Properties.ToArray();
+		foreach ( var property in properties )
+		{
+			var type = property.PropertyType;
+			bool isList = type.IsAssignableTo( typeof(IList) );
+			bool isDictionary = type.IsAssignableTo( typeof(IDictionary) );
+
+			if ( type.IsGenericType && (!isList && !isDictionary) )
+			{
+				StructDialog popup = new StructDialog( $"Data Table Editor - {_asset.Path}" );
+				popup.DeleteOnClose = true;
+				popup.OnWindowClosed = delegate
+				{
+					Close();
+				};
+				popup.SetModal(on: true, application: true);
+				popup.Hide();
+				popup.Show();
+				return;
+			}
+		}
+
+		DockManager.Clear();
+		DockManager.RegisterDockType( "Table View", "equalizer", null, false );
+		DockManager.RegisterDockType( "Row Editor", "tune", null, false );
+		DockManager.RegisterDockType( "Undo History", "history", null, false );
+
+		for ( int i = InternalEntries.Count - 1; i >= 0; i-- )
+		{
+			if ( InternalEntries[i] is null )
+				InternalEntries.RemoveAt( i );
+		}
+
+		_rowEditor = new(this){ WindowTitle = "Row Editor" };
+		_rowEditor.Layout = Layout.Column();
+		_rowEditor.SetWindowIcon( "tune" );
+		_rowEditor.Name = "Row Editor";
+
+		ScrollArea scroll = new ScrollArea( _rowEditor );
+		scroll.Canvas = new Widget( scroll )
+		{
+			Layout = Layout.Row(),
+			VerticalSizeMode = SizeMode.CanGrow | SizeMode.Expand
+		};
+
+		scroll.Canvas.Layout.AddStretchCell();
+		scroll.Canvas.OnPaintOverride = () =>
+		{
+			Paint.ClearPen();
+			Paint.SetBrush( Theme.WidgetBackground );
+			Paint.DrawRect( scroll.Canvas.LocalRect );
+
+			return false;
+		};
+
+		_sheet = new ControlSheet();
+
+		var layout = scroll.Canvas.Layout;
+
+		var sheetCanvas = new Widget( scroll.Canvas );
+		sheetCanvas.MinimumHeight = 200;
+		sheetCanvas.Layout = Layout.Column();
+		sheetCanvas.Layout.Add( _sheet );
+		sheetCanvas.Layout.AddStretchCell();
+
+		layout.Add( sheetCanvas );
+		layout.AddStretchCell();
+
+		var structType = TypeLibrary.GetType( _dataTable.StructType );
+		if ( structType is null )
+			return;
+
+		_tableEditor = new(this){ WindowTitle = "Table View" };
+		_tableEditor.Layout = Layout.Column();
+		_tableEditor.SetWindowIcon( "equalizer" );
+		_tableEditor.Name = "Table View";
+
+		_tableView = new TableView( _tableEditor );
+
+		var rowNameCol = _tableView.AddColumn();
+		rowNameCol.Name = "RowName";
+		rowNameCol.TextColor = Color.Parse( "#e1913c" ).GetValueOrDefault();
+		rowNameCol.Value = o =>
+		{
+			return structType.GetProperty( "RowName" ).GetValue( o )?.ToString() ?? "";
+		};
+
+		foreach ( var property in structType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+		{
+			if ( property.Name == "RowName" )
+				continue;
+
+			var col = _tableView.AddColumn();
+			col.Name = property.Name;
+			col.Value = o =>
+			{
+				return property.GetValue( o )?.ToString() ?? "";
+			};
+		}
+
+		_tableView.SetItems( InternalEntries.ToList() );
+		_tableView.FillHeader();
+
+		if ( InternalEntries.Count > 0 )
+		{
+			_tableView.ListView.Selection.Add( InternalEntries[0] );
+			PopulateControlSheet( InternalEntries[0].GetSerialized() );
+		}
+
+		_tableView.ItemClicked = o =>
+		{
+			PopulateControlSheet( o.GetSerialized() );
+		};
+
+		_tableEditor.Layout.Add( _tableView );
+
+		_rowEditor.Layout.Add( scroll );
 
 		_undoHistory = new UndoHistory( this, _undoStack );
 		_undoHistory.OnUndo = Undo;
@@ -317,10 +364,10 @@ public class DataTableEditor : DockWindow
 
 		var flags = DockManager.DockProperty.HideCloseButton | DockManager.DockProperty.HideOnClose | DockManager.DockProperty.DisallowFloatWindow;
 
-		DockManager.AddDock( null, tableView, DockArea.Top, flags );
-		DockManager.AddDock( null, rowEditor, DockArea.Bottom, flags );
-		DockManager.AddDock( rowEditor, _undoHistory, DockArea.Inside, flags );
-		DockManager.RaiseDock( "Table View" );
+		DockManager.AddDock( null, _tableEditor, DockArea.Top, flags );
+		DockManager.AddDock( null, _rowEditor, DockArea.Bottom, flags );
+		DockManager.AddDock( _rowEditor, _undoHistory, DockArea.Inside, flags );
+		DockManager.RaiseDock( "Row Editor" );
 		DockManager.Update();
 
 		_defaultDockState = DockManager.State;
@@ -329,20 +376,30 @@ public class DataTableEditor : DockWindow
 		{
 			StateCookie = "DataTableEditor";
 		}
+		else
+		{
+			RestoreFromStateCookie();
+		}
+	}
+
+	public void OnUndoPushed()
+	{
+		_undoHistory.History = _undoStack.Names;
 	}
 
 	private void SetUndoLevel( int level )
 	{
 		if ( _undoStack.SetUndoLevel( level ) is UndoOp op )
 		{
-			Log.Info( $"SetUndoLevel ({op.name})" );
+			Log.Info( "SetUndoLevel" );
 
 			Json._currentProperty = null; // @TODO: This is dumb. DO BETTER!
 			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
 			Json._currentProperty = null;
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
-			PopulateEditor();
+			//PopulateEditor();
+			UpdateViewAndEditor();
 
 			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 		}
@@ -480,6 +537,7 @@ public class DataTableEditor : DockWindow
 
 		var json = SerializeEntries();
 		_undoStack.PushUndo( $"Remove Row(s)", _previousJson );
+		OnUndoPushed();
 		_undoStack.PushRedo( json );
 		_previousJson = json;
 	}
@@ -505,6 +563,7 @@ public class DataTableEditor : DockWindow
 
 		var json = SerializeEntries();
 		_undoStack.PushUndo( $"Add Entry {o.RowName}", _previousJson );
+		OnUndoPushed();
 		_undoStack.PushRedo( json );
 		_previousJson = json;
 	}
@@ -587,10 +646,6 @@ public class DataTableEditor : DockWindow
 					_dataTable.EntryCount = 0;
 				Close();
 			});
-		}
-		else
-		{
-			SaveToStateCookie();
 		}
 
 		return !_isUnsaved;
