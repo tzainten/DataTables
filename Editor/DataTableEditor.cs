@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using DataTables;
 using Editor;
 using Sandbox;
+using Sandbox.Diagnostics;
 using Sandbox.Helpers;
 using Application = Editor.Application;
 using Json = DataTables.Json;
@@ -35,13 +36,13 @@ public class DataTableEditor : DockWindow
 
 	private bool _isUnsaved = false;
 
-	private UndoSystem _undo = new();
-
 	private string _previousJson;
 
 	private PropertyDescription[] _previousProperties;
 
 	private string _defaultDockState;
+
+	private UndoStack _undoStack = new();
 
 	public DataTableEditor( Asset asset, DataTable dataTable )
 	{
@@ -70,43 +71,64 @@ public class DataTableEditor : DockWindow
 		AddToolbar();
 		BuildMenuBar();
 
-		_undo.SetSnapshotFunction( GetSnapshot );
-		_undo.Initialize();
-
 		Show();
 		PopulateEditor();
+		RestoreFromStateCookie();
 	}
 
-	private Action GetSnapshot()
+	private string SerializeEntries()
 	{
-		var state = new Snapshot( this );
-		return () => RestoreState( state );
-	}
-
-	private void RestoreState( Snapshot oldState )
-	{
-		oldState.Restore();
-		MarkUnsaved();
-		PopulateEditor();
+		JsonArray array = new();
+		Json.SerializeArray( array, InternalEntries );
+		return array.ToJsonString();
 	}
 
 	[Shortcut( "editor.undo", "CTRL+Z", ShortcutType.Window )]
 	private void Undo()
 	{
-		if ( _undo.Undo() )
+		if ( _undoStack.Undo() is UndoOp op )
+		{
+			Log.Info( $"Undo ({op.name})" );
+
+			Json._currentProperty = null;
+			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.undoBuffer )?.AsArray(), typeof(List<RowStruct>) );
+			Json._currentProperty = null;
+			_previousJson = SerializeEntries();
+			MarkUnsaved();
+			PopulateEditor();
+
 			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
+		}
+	}
+
+	[Shortcut( "editor.redo", "CTRL+Y", ShortcutType.Window )]
+	private void Redo()
+	{
+		if ( _undoStack.Redo() is UndoOp op )
+		{
+			Log.Info( $"Redo ({op.name})" );
+
+			Json._currentProperty = null; // @TODO: This is dumb. DO BETTER!
+			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
+			Json._currentProperty = null;
+			_previousJson = SerializeEntries();
+			MarkUnsaved();
+			PopulateEditor();
+
+			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
+		}
 	}
 
 	private void MarkUnsaved()
 	{
 		_isUnsaved = true;
-		Title = $"Data Table Editor - {_asset.Path}*";
+		//Title = $"Data Table Editor - {_asset.Path}*";
 	}
 
 	private void MarkSaved()
 	{
 		_isUnsaved = false;
-		Title = $"Data Table Editor - {_asset.Path}";
+		//Title = $"Data Table Editor - {_asset.Path}";
 	}
 
 	private bool SheetFilter( SerializedProperty property )
@@ -119,6 +141,11 @@ public class DataTableEditor : DockWindow
 		return true;
 	}
 
+	private string EvaluateTitle()
+	{
+		return $"Data Table Editor - {_asset.Path}{(_isUnsaved ? "*" : "")} {(Game.IsPlaying ? "(Restricted)" : "")}";
+	}
+
 	private int _mouseUpFrames;
 
 	private RealTimeSince _timeSinceChange;
@@ -126,6 +153,12 @@ public class DataTableEditor : DockWindow
 	[EditorEvent.Frame]
 	private void Tick()
 	{
+		Title = EvaluateTitle();
+
+		_addOption.Enabled = !Game.IsPlaying;
+		_duplicateOption.Enabled = !Game.IsPlaying;
+		_deleteOption.Enabled = !Game.IsPlaying;
+
 		_mouseUpFrames++;
 		if ( Application.MouseButtons != 0 )
 		{
@@ -137,14 +170,12 @@ public class DataTableEditor : DockWindow
 			if ( InternalEntries is null )
 				return;
 
-			JsonArray array = new();
-			Json.SerializeArray( array, InternalEntries );
-			string json = array.ToJsonString();
+			string json = SerializeEntries();
 			if ( json != _previousJson )
 			{
+				_undoStack.PushUndo("Modified a RowStruct", _previousJson  );
+				_undoStack.PushRedo( json );
 				_previousJson = json;
-				_undo.Snapshot( "Generic Undo" );
-				Log.Info( "Undo!" );
 				MarkUnsaved();
 				_timeSinceChange = 0;
 			}
@@ -281,7 +312,7 @@ public class DataTableEditor : DockWindow
 
 		DockManager.AddDock( null, tableView, DockArea.Top, flags );
 		DockManager.AddDock( null, rowEditor, DockArea.Bottom, flags );
-		DockManager.RaiseDock( "data table" );
+		DockManager.RaiseDock( "Table View" );
 		DockManager.Update();
 
 		_defaultDockState = DockManager.State;
@@ -289,10 +320,6 @@ public class DataTableEditor : DockWindow
 		if ( StateCookie != "DataTableEditor" )
 		{
 			StateCookie = "DataTableEditor";
-		}
-		else
-		{
-			RestoreFromStateCookie();
 		}
 	}
 
@@ -338,6 +365,9 @@ public class DataTableEditor : DockWindow
 		SaveToStateCookie();
 	}
 
+	private Option _addOption;
+	private Option _duplicateOption;
+	private Option _deleteOption;
 	private void AddToolbar()
 	{
 		_toolBar = new ToolBar( this, "DataTableToolbar" );
@@ -347,9 +377,12 @@ public class DataTableEditor : DockWindow
 		_toolBar.AddOption( "Save", "common/save.png", Save ).StatusTip = "Saves this Data Table to disk";
 		_toolBar.AddOption( "Browse", "common/browse.png" ).StatusTip = "Filler";
 		_toolBar.AddSeparator();
-		_toolBar.AddOption( "Add", "common/add.png", AddEntry ).StatusTip = "Append a new entry";
-		_toolBar.AddOption( "Duplicate", "common/copy.png", DuplicateEntry ).StatusTip = "Appends a duplicate of the currently selected entry";
-		_toolBar.AddOption( "Delete", "common/remove.png", RemoveEntry ).StatusTip = "Delete the currently selected entry";
+		_addOption = _toolBar.AddOption( "Add", "common/add.png", AddEntry );
+		_addOption.StatusTip = "Append a new entry";
+		_duplicateOption = _toolBar.AddOption( "Duplicate", "common/copy.png", DuplicateEntry );
+		_duplicateOption.StatusTip = "Appends a duplicate of the currently selected entry";
+		_deleteOption = _toolBar.AddOption( "Delete", "common/remove.png", RemoveEntry );
+		_deleteOption.StatusTip = "Delete the currently selected entry";
 
 		/*var stretch = new Widget();
 		stretch.HorizontalSizeMode = SizeMode.CanGrow | SizeMode.Expand;
@@ -396,6 +429,8 @@ public class DataTableEditor : DockWindow
 		if ( _tableView.ListView.Selection.Count > 0 )
 			MarkUnsaved();
 
+		_previousJson = SerializeEntries();
+
 		var index = -1;
 		foreach ( var selection in _tableView.ListView.Selection )
 		{
@@ -417,11 +452,18 @@ public class DataTableEditor : DockWindow
 			_tableView.ListView.Selection.Add( InternalEntries[index] );
 			PopulateControlSheet( InternalEntries[index].GetSerialized() );
 		}
+
+		var json = SerializeEntries();
+		_undoStack.PushUndo( $"Remove Row(s)", _previousJson );
+		_undoStack.PushRedo( json );
+		_previousJson = json;
 	}
 
 	private void AddEntry()
 	{
 		MarkUnsaved();
+
+		_previousJson = SerializeEntries();
 
 		var o = TypeLibrary.Create<RowStruct>( _dataTable.StructType );
 		o.RowName = $"NewEntry_{EntryCount++}";
@@ -435,6 +477,11 @@ public class DataTableEditor : DockWindow
 		PopulateControlSheet( o.GetSerialized() );
 
 		_tableView.ListView.ScrollTo( o );
+
+		var json = SerializeEntries();
+		_undoStack.PushUndo( $"Add Entry {o.RowName}", _previousJson );
+		_undoStack.PushRedo( json );
+		_previousJson = json;
 	}
 
 	private List<object> _clipboard = new();
