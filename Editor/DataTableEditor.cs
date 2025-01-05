@@ -116,8 +116,6 @@ public class DataTableEditor : DockWindow
 			var sheetObj = InternalEntries.FirstOrDefault( x => x.RowName == undoState.SheetRowName );
 			if ( sheetObj is not null )
 				PopulateControlSheet( sheetObj );
-
-			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 		}
 	}
 
@@ -146,8 +144,6 @@ public class DataTableEditor : DockWindow
 			var sheetObj = InternalEntries.FirstOrDefault( x => x.RowName == redoState.SheetRowName );
 			if ( sheetObj is not null )
 				PopulateControlSheet( sheetObj );
-
-			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 		}
 	}
 
@@ -446,8 +442,6 @@ public class DataTableEditor : DockWindow
 			MarkUnsaved();
 			//PopulateEditor();
 			UpdateViewAndEditor();
-
-			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 		}
 	}
 
@@ -719,6 +713,8 @@ public class DataTableEditor : DockWindow
 
 		_dataTable.EntryCount = EntryCount;
 		_asset.SaveToDisk( _dataTable );
+
+		EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 	}
 
 	protected override bool OnClose()
