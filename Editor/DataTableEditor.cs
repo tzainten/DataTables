@@ -578,7 +578,7 @@ public class DataTableEditor : DockWindow
 			var tuple = InternalEntries.Index().First( x => x.Item.Key == pair.Key );
 			index = tuple.Index - 1;
 
-			var tuple2 = InternalEntries.Index().First( x => x.Index == index );
+			var tuple2 = InternalEntries.Index().FirstOrDefault( x => x.Index == index );
 			key = tuple2.Item.Key;
 
 			_tableView.ListView.RemoveItem( pair );
@@ -587,7 +587,7 @@ public class DataTableEditor : DockWindow
 
 		_tableView.ListView.Selection.Clear();
 
-		if ( InternalEntries.ContainsKey( key ) )
+		if ( key is not null && InternalEntries.ContainsKey( key ) )
 		{
 			_tableView.ListView.Selection.Add( new KeyValuePair<string, RowStruct>(key, InternalEntries[key]) );
 
