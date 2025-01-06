@@ -547,6 +547,16 @@ public class DataTableEditor : DockWindow
 		}
 	}
 
+	private List<string> GetSelectedNames()
+	{
+		List<string> result = new();
+
+		foreach ( RowStruct row in _tableView.ListView.Selection )
+			result.Add( row.RowName );
+
+		return result;
+	}
+
 	private void RemoveEntry()
 	{
 		_sheet.Clear( true );
@@ -555,17 +565,7 @@ public class DataTableEditor : DockWindow
 			MarkUnsaved();
 
 		_previousJson = SerializeEntries();
-
-		List<string> selectedNames = new();
-
-		foreach ( RowStruct row in _tableView.ListView.Selection )
-		{
-			selectedNames.Add( row.RowName );
-		}
-
-		_previousEditorState = new(selectedNames, _sheetObject);
-
-		object _selection = null;
+		_previousEditorState = new(GetSelectedNames(), _sheetObject);
 
 		var index = -1;
 		foreach ( var selection in _tableView.ListView.Selection )
@@ -590,14 +590,7 @@ public class DataTableEditor : DockWindow
 			PopulateControlSheet( InternalEntries[index] );
 		}
 
-		selectedNames = new();
-
-		foreach ( RowStruct row in _tableView.ListView.Selection )
-		{
-			selectedNames.Add( row.RowName );
-		}
-
-		EditorState state = new(selectedNames, _sheetObject);
+		EditorState state = new(GetSelectedNames(), _sheetObject);
 
 		var json = SerializeEntries();
 		_undoStack.PushUndo( $"Remove Row(s)", _previousJson, _previousEditorState );
