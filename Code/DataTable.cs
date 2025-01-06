@@ -38,11 +38,14 @@ public class DataTable : GameResource
 
 		JsonObject jobj = Sandbox.Json.ParseToJsonObject( ref reader );
 
-		Json._currentProperty = null;
-		List<RowStruct> structEntries = (List<RowStruct>)Json.DeserializeArray(jobj["StructEntries"].AsArray(), typeof(List<RowStruct>) );
-		Json._currentProperty = null;
+		if ( jobj.ContainsKey( "StructEntries" ) )
+		{
+			Json._currentProperty = null;
+			List<RowStruct> structEntries = (List<RowStruct>)Json.DeserializeArray(jobj["StructEntries"].AsArray(), typeof(List<RowStruct>) );
+			Json._currentProperty = null;
 
-		StructEntries = structEntries;
+			StructEntries = structEntries;
+		}
 	}
 
 	protected override void OnJsonSerialize( JsonObject node )
