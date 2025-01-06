@@ -50,16 +50,16 @@ public class DataTable : GameResource
 				StructEntries = structEntries;
 			else
 			{
-				foreach ( var otherPair in structEntries )
+				foreach ( var pair in structEntries )
 				{
-					if ( StructEntries.ContainsKey( otherPair.Key ) )
+					if ( StructEntries.ContainsKey( pair.Key ) )
 					{
-						var entry = StructEntries[otherPair.Key];
-						entry.Integer = otherPair.Value.Integer;
+						var entry = StructEntries[pair.Key];
+						TypeLibrary.Merge( ref entry, pair.Value );
 					}
 					else
 					{
-						StructEntries.Add( otherPair.Key, otherPair.Value );
+						StructEntries.Add( pair.Key, pair.Value );
 					}
 				}
 			}

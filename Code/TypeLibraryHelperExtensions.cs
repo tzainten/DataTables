@@ -11,7 +11,20 @@ internal static class TypeLibraryHelperExtensions
 {
 	private static PropertyDescription _currentProperty;
 
-	public static T Clone<T>( this TypeLibrary typeLibrary, object target ) => CloneObject<T>( typeLibrary, target );
+	public static T Clone<T>( this TypeLibrary typeLibrary, object target )
+	{
+		var targetType = typeof(T);
+		TypeDescription type = typeLibrary.GetType( targetType );
+		if ( type.IsValueType )
+			return (T)target;
+
+		if ( targetType.IsAssignableTo( typeof(IList) ) )
+		{
+			return (T)CloneList( typeLibrary, target );
+		}
+
+		return CloneObject<T>( typeLibrary, target );
+	}
 
 	public static IList CloneList( this TypeLibrary typeLibrary, object target )
 	{
@@ -37,7 +50,7 @@ internal static class TypeLibraryHelperExtensions
 			{
 				case ObjectType.Object:
 					var previousProperty = _currentProperty;
-					list.Add( CloneObject<object>( typeLibrary, value ) );
+					list.Add( Clone<object>( typeLibrary, value ) );
 					_currentProperty = previousProperty;
 					break;
 				case ObjectType.String:
@@ -89,5 +102,40 @@ internal static class TypeLibraryHelperExtensions
 		}
 
 		return o;
+	}
+
+	public static void Merge<T>( this TypeLibrary typeLibrary, ref T target, T merger )
+	{
+		var targetType = typeof(T);
+		TypeDescription type = typeLibrary.GetType( targetType );
+		if ( type.IsValueType )
+		{
+			target = merger;
+			return;
+		}
+
+		foreach ( var property in typeLibrary.GetPropertyDescriptions( target ).Where( x => x.IsPublic && !x.IsStatic ) )
+		{
+			var value = property.GetValue( target );
+			if ( value is null )
+				continue;
+
+			_currentProperty = property;
+
+			switch ( value.GetObjectType() )
+			{
+				case ObjectType.Array:
+					//property.SetValue( target, CloneList( typeLibrary, value ) );
+					break;
+				case ObjectType.Object:
+					//property.SetValue( o, CloneObject<T>( typeLibrary, value ) );
+					break;
+				case ObjectType.String:
+				case ObjectType.Boolean:
+				case ObjectType.Number:
+					property.SetValue( target, property.GetValue( merger ) );
+					break;
+			}
+		}
 	}
 }
