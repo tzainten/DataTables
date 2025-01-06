@@ -9,101 +9,89 @@ namespace DataTables;
 
 internal static class TypeLibraryHelperExtensions
 {
-	private static PropertyDescription _currentProperty;
-
-	public static T Clone<T>( this TypeLibrary typeLibrary, object target )
+	public static T Clone<T>( this TypeLibrary typeLibrary, T target )
 	{
-		var targetType = typeof(T);
+		return (T)CloneInternal( typeLibrary, target );
+	}
+
+	public static object CloneInternal( this TypeLibrary typeLibrary, object target )
+	{
+		var targetType = target.GetType();
 		TypeDescription type = typeLibrary.GetType( targetType );
+
 		if ( type.IsValueType )
-			return (T)target;
+			return target;
 
 		if ( targetType.IsAssignableTo( typeof(IList) ) )
 		{
-			return (T)CloneList( typeLibrary, target );
+			IList listTarget = (IList)target;
+			IList result = (IList)typeLibrary.Create<object>( targetType );
+
+			foreach ( var elem in listTarget )
+			{
+				result.Add( CloneInternal( typeLibrary, elem ) );
+			}
+
+			return result;
 		}
 
-		return CloneObject<T>( typeLibrary, target );
+		if ( targetType.IsAssignableTo( typeof(IDictionary) ) )
+		{
+			IDictionary dictTarget = (IDictionary)target;
+			IDictionary result = (IDictionary)typeLibrary.Create<object>( targetType );
+
+			foreach ( var key in dictTarget.Keys )
+			{
+				if ( key is null )
+					continue;
+
+				var value = dictTarget[key];
+				if ( value is null )
+					continue;
+
+				result.Add( key, CloneInternal( typeLibrary, value ) );
+			}
+
+			return result;
+		}
+
+		return CloneObject( typeLibrary, target );
 	}
 
-	public static IList CloneList( this TypeLibrary typeLibrary, object target )
+	public static object CloneObject( this TypeLibrary typeLibrary, object target )
 	{
-		IList list = null;
+		var targetType = target.GetType();
+		TypeDescription type = typeLibrary.GetType( targetType );
 
-		var type = typeLibrary.GetType( _currentProperty.PropertyType );
-		if ( type.TargetType.IsAssignableTo( typeof(IList) ) )
+		object instance = null;
+		if ( targetType.IsAssignableTo( typeof(string) ) )
+			instance = new String( (string)target );
+		else
 		{
-			list = (IList)typeLibrary.Create<object>( _currentProperty.PropertyType );
-		}
-
-		if ( list is null )
-			return list;
-
-		var enumerator = (target as IList).GetEnumerator();
-		while ( enumerator.MoveNext() )
-		{
-			var value = enumerator.Current;
-			if ( value is null )
-				continue;
-
-			switch ( value.GetObjectType() )
+			instance = typeLibrary.Create<object>( targetType );
+			foreach ( var field in type.Fields.Where( x => x.IsPublic && !x.IsStatic ) )
 			{
-				case ObjectType.Object:
-					var previousProperty = _currentProperty;
-					list.Add( Clone<object>( typeLibrary, value ) );
-					_currentProperty = previousProperty;
-					break;
-				case ObjectType.String:
-					list.Add( (string)value );
-					break;
-				case ObjectType.Boolean:
-					list.Add( (bool)value );
-					break;
-				case ObjectType.Number:
-					if ( int.TryParse( value.ToString(), out var intValue ) )
-						list.Add( intValue );
-					else
-						list.Add( (double)value );
-					break;
+				var value = field.GetValue( target );
+				if ( value is null )
+					continue;
+
+				field.SetValue( instance, CloneInternal( typeLibrary, value ) );
+			}
+
+			foreach ( var property in type.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+			{
+				var value = property.GetValue( target );
+				if ( value is null )
+					continue;
+
+				property.SetValue( instance, CloneInternal( typeLibrary, value ) );
 			}
 		}
 
-		return list;
+		return instance;
 	}
 
-	public static T CloneObject<T>( this TypeLibrary typeLibrary, object target )
-	{
-		if ( target is null )
-			return default;
-
-		var o = typeLibrary.Create<T>( target.GetType() );
-		foreach ( var property in typeLibrary.GetPropertyDescriptions( o ).Where( x => x.IsPublic && !x.IsStatic ) )
-		{
-			var value = property.GetValue( target );
-			if ( value is null )
-				continue;
-
-			_currentProperty = property;
-
-			switch ( value.GetObjectType() )
-			{
-				case ObjectType.Array:
-					property.SetValue( o, CloneList( typeLibrary, value ) );
-					break;
-				case ObjectType.Object:
-					property.SetValue( o, CloneObject<T>( typeLibrary, value ) );
-					break;
-				case ObjectType.String:
-				case ObjectType.Boolean:
-				case ObjectType.Number:
-					property.SetValue( o, value );
-					break;
-			}
-		}
-
-		return o;
-	}
-
+	public static PropertyDescription _currentProperty = null;
 	public static void Merge<T>( this TypeLibrary typeLibrary, ref T target, T merger )
 	{
 		var targetType = typeof(T);
@@ -128,7 +116,7 @@ internal static class TypeLibraryHelperExtensions
 					//property.SetValue( target, CloneList( typeLibrary, value ) );
 					break;
 				case ObjectType.Object:
-					property.SetValue( target, CloneObject<T>( typeLibrary, property.GetValue( merger ) ) );
+					property.SetValue( target, CloneInternal( typeLibrary, property.GetValue( merger ) ) );
 					break;
 				case ObjectType.String:
 				case ObjectType.Boolean:
