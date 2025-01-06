@@ -708,7 +708,7 @@ public class DataTableEditor : DockWindow
 			if ( _dataTable.StructEntries.ContainsKey( pair.Key ) )
 			{
 				var entry = _dataTable.StructEntries[pair.Key];
-				TypeLibrary.Merge( ref entry, pair.Value );
+				TypeLibrary.Merge( entry, pair.Value );
 			}
 			else
 			{

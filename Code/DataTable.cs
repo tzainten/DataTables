@@ -54,7 +54,7 @@ public class DataTable : GameResource
 					if ( StructEntries.ContainsKey( pair.Key ) )
 					{
 						var entry = StructEntries[pair.Key];
-						TypeLibrary.Merge( ref entry, pair.Value );
+						TypeLibrary.Merge( entry, pair.Value );
 					}
 					else
 					{
