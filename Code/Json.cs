@@ -232,14 +232,28 @@ internal static class Json
 		return instance;
 	}
 
-	private static IDictionary DeserializeDictionary( JsonObject node )
+	public static IDictionary DeserializeDictionary( JsonObject node, Type targetType = null )
 	{
 		IDictionary dictionary = null;
 
-		var type = TypeLibrary.GetType( _currentProperty.PropertyType );
-		if ( type.TargetType.IsAssignableTo( typeof(IDictionary) ) )
+		TypeDescription type = null;
+
+		if ( _currentProperty is not null )
 		{
-			dictionary = (IDictionary)TypeLibrary.Create<object>( _currentProperty.PropertyType );
+			type = TypeLibrary.GetType( _currentProperty.PropertyType );
+			if ( type.TargetType.IsAssignableTo( typeof(IDictionary) ) )
+			{
+				dictionary = (IDictionary)TypeLibrary.Create<object>( _currentProperty.PropertyType );
+			}
+		}
+
+		if ( targetType is not null )
+		{
+			type = TypeLibrary.GetType( targetType );
+			if ( type.TargetType.IsAssignableTo( typeof(IDictionary) ) )
+			{
+				dictionary = (IDictionary)TypeLibrary.Create<object>( targetType );
+			}
 		}
 
 		if ( dictionary is null )

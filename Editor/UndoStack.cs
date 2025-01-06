@@ -19,12 +19,10 @@ public class EditorState
 	public List<string> SelectedNames;
 	public string SheetRowName;
 
-	public EditorState( List<string> names, RowStruct row )
+	public EditorState( List<string> names, string rowName )
 	{
 		SelectedNames = names;
-
-		if ( row is not null )
-			SheetRowName = row.RowName;
+		SheetRowName = rowName;
 	}
 }
 
