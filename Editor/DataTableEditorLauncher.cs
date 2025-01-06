@@ -115,6 +115,14 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 		_dataTable = _asset.LoadResource<DataTable>();
 
 		var structType = TypeLibrary.GetType( _dataTable.StructType );
+
+		if ( structType is null && _dataTable.StructType is not null )
+		{
+			MissingStructDialog dialog = new($"Data Table Editor - {_asset.Path}", _dataTable.StructType); // @TODO: Revisit this. I'm not even sure if this dialog is necessary.
+			Close();
+			return;
+		}
+
 		if ( structType is null || !TypeLibrary.GetTypes().Any( x => x.TargetType.IsSubclassOf( typeof(RowStruct) ) ) )
 		{
 			FillLayout();
