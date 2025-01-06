@@ -55,7 +55,7 @@ public class DataTableEditor : DockWindow
 		EntryCount = _dataTable.EntryCount;
 
 		foreach ( var pair in _dataTable.StructEntries )
-			InternalEntries.Add( pair.Key, pair.Value );
+			InternalEntries.Add( pair.Key, TypeLibrary.Clone<RowStruct>( pair.Value ) );
 
 		_previousJson = SerializeEntries();
 
@@ -689,9 +689,32 @@ public class DataTableEditor : DockWindow
 		if ( InternalEntries.Count == 0 )
 			EntryCount = 0;
 
-		_dataTable.StructEntries.Clear();
+		/*_dataTable.StructEntries.Clear();
 		foreach ( var pair in InternalEntries )
-			_dataTable.StructEntries.Add( pair.Key, pair.Value );
+			_dataTable.StructEntries.Add( pair.Key, pair.Value );*/
+
+		List<string> nullKeys = new();
+		foreach ( var pair in _dataTable.StructEntries )
+		{
+			if ( !InternalEntries.ContainsKey( pair.Key ) )
+				nullKeys.Add( pair.Key );
+		}
+
+		foreach ( var key in nullKeys )
+			_dataTable.StructEntries.Remove( key );
+
+		foreach ( var pair in InternalEntries )
+		{
+			if ( _dataTable.StructEntries.ContainsKey( pair.Key ) )
+			{
+				var entry = _dataTable.StructEntries[pair.Key];
+				entry.Integer = pair.Value.Integer;
+			}
+			else
+			{
+				_dataTable.StructEntries.Add( pair.Key, TypeLibrary.Clone<RowStruct>( pair.Value ) );
+			}
+		}
 
 		_dataTable.EntryCount = EntryCount;
 		_asset.SaveToDisk( _dataTable );

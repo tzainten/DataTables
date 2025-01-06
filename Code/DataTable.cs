@@ -46,7 +46,23 @@ public class DataTable : GameResource
 					typeof(Dictionary<string, RowStruct>) );
 			Json._currentProperty = null;
 
-			StructEntries = structEntries;
+			if ( StructEntries.Count == 0 )
+				StructEntries = structEntries;
+			else
+			{
+				foreach ( var otherPair in structEntries )
+				{
+					if ( StructEntries.ContainsKey( otherPair.Key ) )
+					{
+						var entry = StructEntries[otherPair.Key];
+						entry.Integer = otherPair.Value.Integer;
+					}
+					else
+					{
+						StructEntries.Add( otherPair.Key, otherPair.Value );
+					}
+				}
+			}
 		}
 	}
 
