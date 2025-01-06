@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Sandbox;
 
@@ -27,9 +29,20 @@ public class DataTable : GameResource
 
 	private void Fix()
 	{
-		var dataTable = Json.Deserialize<DataTable>( FileSystem.Mounted.ReadAllText( ResourcePath ) );
-		StructType = dataTable.StructType;
-		StructEntries = dataTable.StructEntries;
+		Utf8JsonReader reader = new(Encoding.UTF8.GetBytes( FileSystem.Mounted.ReadAllText( ResourcePath ) ),
+			new()
+			{
+				AllowTrailingCommas = false,
+				CommentHandling = JsonCommentHandling.Skip
+			});
+
+		JsonObject jobj = Sandbox.Json.ParseToJsonObject( ref reader );
+
+		Json._currentProperty = null;
+		List<RowStruct> structEntries = (List<RowStruct>)Json.DeserializeArray(jobj["StructEntries"].AsArray(), typeof(List<RowStruct>) );
+		Json._currentProperty = null;
+
+		StructEntries = structEntries;
 	}
 
 	protected override void OnJsonSerialize( JsonObject node )

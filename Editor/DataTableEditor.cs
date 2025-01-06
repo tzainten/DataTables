@@ -433,8 +433,6 @@ public class DataTableEditor : DockWindow
 	{
 		if ( _undoStack.SetUndoLevel( level ) is UndoOp op )
 		{
-			Log.Info( "SetUndoLevel" );
-
 			Json._currentProperty = null; // @TODO: This is dumb. DO BETTER!
 			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
 			Json._currentProperty = null;
