@@ -84,10 +84,10 @@ public class DataTableEditor : DockWindow
 	[Shortcut( "editor.undo", "CTRL+Z", ShortcutType.Window )]
 	private void Undo()
 	{
-		/*if ( _undoStack.Undo() is UndoOp op )
+		if ( _undoStack.Undo() is UndoOp op )
 		{
 			Json._currentProperty = null;
-			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.undoBuffer )?.AsArray(), typeof(List<RowStruct>) );
+			InternalEntries = (Dictionary<string, RowStruct>)Json.DeserializeDictionary( JsonNode.Parse( op.undoBuffer )?.AsObject(), typeof(Dictionary<string, RowStruct>) );
 			Json._currentProperty = null;
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
@@ -98,24 +98,24 @@ public class DataTableEditor : DockWindow
 			_tableView.ListView.Selection.Clear();
 			foreach ( var rowName in undoState.SelectedNames )
 			{
-				var obj = InternalEntries.FirstOrDefault( x => x.RowName == rowName );
-				if ( obj is not null )
-					_tableView.ListView.Selection.Add( obj );
+				var pair = InternalEntries.FirstOrDefault( x => x.Key == rowName );
+				if ( pair.Key is not null )
+					_tableView.ListView.Selection.Add( pair );
 			}
 
-			var sheetObj = InternalEntries.FirstOrDefault( x => x.RowName == undoState.SheetRowName );
-			if ( sheetObj is not null )
-				PopulateControlSheet( sheetObj );
-		}*/
+			var _pair = InternalEntries.FirstOrDefault( x => x.Key == undoState.SheetRowName );
+			if ( _pair.Key is not null )
+				PopulateControlSheet( _pair.Value );
+		}
 	}
 
 	[Shortcut( "editor.redo", "CTRL+Y", ShortcutType.Window )]
 	private void Redo()
 	{
-		/*if ( _undoStack.Redo() is UndoOp op )
+		if ( _undoStack.Redo() is UndoOp op )
 		{
 			Json._currentProperty = null; // @TODO: This is dumb. DO BETTER!
-			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
+			InternalEntries = (Dictionary<string, RowStruct>)Json.DeserializeDictionary( JsonNode.Parse( op.redoBuffer )?.AsObject(), typeof(Dictionary<string, RowStruct>) );
 			Json._currentProperty = null;
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
@@ -126,15 +126,15 @@ public class DataTableEditor : DockWindow
 			_tableView.ListView.Selection.Clear();
 			foreach ( var rowName in redoState.SelectedNames )
 			{
-				var obj = InternalEntries.FirstOrDefault( x => x.RowName == rowName );
-				if ( obj is not null )
-					_tableView.ListView.Selection.Add( obj );
+				var pair = InternalEntries.FirstOrDefault( x => x.Key == rowName );
+				if ( pair.Key is not null )
+					_tableView.ListView.Selection.Add( pair );
 			}
 
-			var sheetObj = InternalEntries.FirstOrDefault( x => x.RowName == redoState.SheetRowName );
-			if ( sheetObj is not null )
-				PopulateControlSheet( sheetObj );
-		}*/
+			var _pair = InternalEntries.FirstOrDefault( x => x.Key == redoState.SheetRowName );
+			if ( _pair.Key is not null )
+				PopulateControlSheet( _pair.Value );
+		}
 	}
 
 	private void MarkUnsaved()
@@ -190,17 +190,10 @@ public class DataTableEditor : DockWindow
 			if ( InternalEntries is null )
 				return;
 
-			/*string json = SerializeEntries();
+			string json = SerializeEntries();
 			if ( json != _previousJson )
 			{
-				List<string> selectedNames = new();
-
-				foreach ( KeyValuePair<string, RowStruct> pair in _tableView.ListView.Selection )
-				{
-					selectedNames.Add( pair.Key );
-				}
-
-				EditorState state = new(selectedNames, _sheetRowName);
+				EditorState state = new(GetSelectedNames(), _sheetRowName);
 
 				_undoStack.PushUndo("Modified a RowStruct", _previousJson, _previousEditorState );
 				OnUndoPushed();
@@ -209,7 +202,7 @@ public class DataTableEditor : DockWindow
 				_previousEditorState = state;
 				MarkUnsaved();
 				_timeSinceChange = 0;
-			}*/
+			}
 		}
 	}
 
@@ -435,16 +428,16 @@ public class DataTableEditor : DockWindow
 
 	private void SetUndoLevel( int level )
 	{
-		/*if ( _undoStack.SetUndoLevel( level ) is UndoOp op )
+		if ( _undoStack.SetUndoLevel( level ) is UndoOp op )
 		{
 			Json._currentProperty = null; // @TODO: This is dumb. DO BETTER!
-			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
+			InternalEntries = (Dictionary<string, RowStruct>)Json.DeserializeDictionary( JsonNode.Parse( op.redoBuffer )?.AsObject(), typeof(Dictionary<string, RowStruct>) );
 			Json._currentProperty = null;
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
 			//PopulateEditor();
 			UpdateViewAndEditor();
-		}*/
+		}
 	}
 
 	private string _sheetRowName;
