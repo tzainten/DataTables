@@ -9,7 +9,6 @@ namespace DataTables;
 
 public class RowStruct
 {
-	public int Integer { get; set; }
 }
 
 [GameResource( "Data Table", "dt", "Description", Icon = "equalizer", IconBgColor = "#b0e24d" )]

@@ -114,9 +114,9 @@ internal static class TypeLibraryHelperExtensions
 			return;
 		}
 
-		foreach ( var property in typeLibrary.GetPropertyDescriptions( target ).Where( x => x.IsPublic && !x.IsStatic ) )
+		foreach ( var property in typeLibrary.GetPropertyDescriptions( merger ).Where( x => x.IsPublic && !x.IsStatic ) )
 		{
-			var value = property.GetValue( target );
+			var value = property.GetValue( merger );
 			if ( value is null )
 				continue;
 
@@ -128,7 +128,7 @@ internal static class TypeLibraryHelperExtensions
 					//property.SetValue( target, CloneList( typeLibrary, value ) );
 					break;
 				case ObjectType.Object:
-					//property.SetValue( o, CloneObject<T>( typeLibrary, value ) );
+					property.SetValue( target, CloneObject<T>( typeLibrary, property.GetValue( merger ) ) );
 					break;
 				case ObjectType.String:
 				case ObjectType.Boolean:
