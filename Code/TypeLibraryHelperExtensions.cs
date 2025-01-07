@@ -344,40 +344,4 @@ internal static class TypeLibraryHelperExtensions
 			}
 		}
 	}
-
-	public static PropertyDescription _currentProperty = null;
-	public static void __Old_Merge<T>( this TypeLibrary typeLibrary, ref T target, T merger )
-	{
-		var targetType = typeof(T);
-		TypeDescription type = typeLibrary.GetType( targetType );
-		if ( type.IsValueType )
-		{
-			target = merger;
-			return;
-		}
-
-		foreach ( var property in typeLibrary.GetPropertyDescriptions( merger ).Where( x => x.IsPublic && !x.IsStatic ) )
-		{
-			var value = property.GetValue( merger );
-			if ( value is null )
-				continue;
-
-			_currentProperty = property;
-
-			switch ( value.GetObjectType() )
-			{
-				case ObjectType.Array:
-					//property.SetValue( target, CloneList( typeLibrary, value ) );
-					break;
-				case ObjectType.Object:
-					property.SetValue( target, CloneInternal( typeLibrary, property.GetValue( merger ) ) );
-					break;
-				case ObjectType.String:
-				case ObjectType.Boolean:
-				case ObjectType.Number:
-					property.SetValue( target, property.GetValue( merger ) );
-					break;
-			}
-		}
-	}
 }
