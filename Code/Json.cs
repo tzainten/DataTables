@@ -105,6 +105,12 @@ internal static class Json
 				if ( value is null )
 					continue;
 
+				if ( value.GetType().IsAssignableTo( typeof(Resource) ) )
+				{
+					jo[property.Name] = JsonNode.Parse( Sandbox.Json.Serialize( value ) );
+					continue;
+				}
+
 				_currentProperty = property;
 				SerializeProperty(jo, property.Name, value);
 			}
@@ -194,6 +200,13 @@ internal static class Json
 				continue;
 
 			_currentProperty = property;
+
+			if ( property.PropertyType.IsAssignableTo( typeof(Resource) ) )
+			{
+				property.SetValue( instance, Sandbox.Json.FromNode( value, property.PropertyType ) );
+				continue;
+			}
+
 			if ( property.PropertyType.IsAssignableTo( typeof(IDictionary) ) )
 			{
 				IDictionary dictionary = DeserializeDictionary( value.AsObject() );

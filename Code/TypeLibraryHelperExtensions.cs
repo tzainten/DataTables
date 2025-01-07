@@ -24,6 +24,9 @@ internal static class TypeLibraryHelperExtensions
 		if ( type.IsValueType )
 			return target;
 
+		if ( targetType.IsAssignableTo( typeof(Resource) ) )
+			return target;
+
 		if ( targetType.IsAssignableTo( typeof(IList) ) )
 		{
 			IList listTarget = (IList)target;
@@ -66,7 +69,9 @@ internal static class TypeLibraryHelperExtensions
 		TypeDescription type = typeLibrary.GetType( targetType );
 
 		object instance = null;
-		if ( targetType.IsAssignableTo( typeof(string) ) )
+		if ( targetType.IsAssignableTo( typeof(Resource) ) )
+			instance = target;
+		else if ( targetType.IsAssignableTo( typeof(string) ) )
 			instance = new String( (string)target );
 		else
 		{
@@ -95,6 +100,9 @@ internal static class TypeLibraryHelperExtensions
 
 	public static void Merge<T>( this TypeLibrary typeLibrary, T target, T merger ) where T : class
 	{
+		Assert.True( target is not null );
+		Assert.True( merger is not null );
+
 		var targetType = target.GetType();
 		TypeDescription type = typeLibrary.GetType( targetType );
 
@@ -111,7 +119,7 @@ internal static class TypeLibraryHelperExtensions
 
 	private static void MergeField( TypeLibrary typeLibrary, FieldDescription field, object target, object merger )
 	{
-		Assert.True( target is not null );
+		Assert.True( target is not null && merger is not null );
 
 		var mergerType = typeLibrary.GetType( merger.GetType() );
 		if ( mergerType.IsGenericType )
@@ -165,7 +173,7 @@ internal static class TypeLibraryHelperExtensions
 
 	private static void MergeProperty( this TypeLibrary typeLibrary, PropertyDescription property, object target, object merger )
 	{
-		Assert.True( target is not null );
+		Assert.True( target is not null && merger is not null );
 
 		var mergerType = typeLibrary.GetType( merger.GetType() );
 		if ( mergerType.IsGenericType )
@@ -175,6 +183,12 @@ internal static class TypeLibraryHelperExtensions
 		if ( value is null )
 		{
 			property.SetValue( target, null );
+			return;
+		}
+
+		if ( value.GetType().IsAssignableTo( typeof(Resource) ) )
+		{
+			property.SetValue( target, value );
 			return;
 		}
 

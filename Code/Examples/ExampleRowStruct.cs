@@ -28,4 +28,6 @@ public class ExampleRowStruct : RowStruct
 
 	[Instanced]
 	public List<Something> Somethings { get; set; }
+
+	public Model Model { get; set; }
 }
