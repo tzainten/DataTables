@@ -9,6 +9,7 @@ namespace DataTables;
 
 public class RowStruct
 {
+	public string RowName { get; set; }
 }
 
 [GameResource( "Data Table", "dt", "Description", Icon = "equalizer", IconBgColor = "#b0e24d" )]
@@ -16,14 +17,14 @@ public class DataTable : GameResource
 {
 	[Hide] public string StructType { get; set; }
 
-	public Dictionary<string, RowStruct> StructEntries = new();
+	public List<RowStruct> StructEntries = new();
 
 	[Hide] public int EntryCount { get; set; } = 0;
 
 	[Title( "Get Row - {T|RowStruct}" )]
 	public T Get<T>( string rowName ) where T : RowStruct
 	{
-		return (T)StructEntries[rowName];
+		return (T)StructEntries.Find( x => x.RowName == rowName );
 	}
 
 	private void Fix()
@@ -40,25 +41,36 @@ public class DataTable : GameResource
 		if ( jobj.ContainsKey( "StructEntries" ) )
 		{
 			Json._currentProperty = null;
-			Dictionary<string, RowStruct> structEntries =
-				(Dictionary<string, RowStruct>)Json.DeserializeDictionary( jobj["StructEntries"].AsObject(),
-					typeof(Dictionary<string, RowStruct>) );
+			List<RowStruct> structEntries =
+				(List<RowStruct>)Json.DeserializeArray( jobj["StructEntries"].AsArray(),
+					typeof(List<RowStruct>) );
 			Json._currentProperty = null;
 
 			if ( StructEntries.Count == 0 )
 				StructEntries = structEntries;
 			else
 			{
-				foreach ( var pair in structEntries )
+				int i;
+				for ( i = StructEntries.Count - 1; i >= 0; i-- )
 				{
-					if ( StructEntries.ContainsKey( pair.Key ) )
+					var row = StructEntries[i];
+					var otherRow = structEntries.Find( x => x.RowName == row.RowName );
+					if ( otherRow is null )
+						StructEntries.RemoveAt( i );
+				}
+
+				for ( i = 0; i < structEntries.Count; i++ )
+				{
+					var otherRow = structEntries[i];
+					var row = StructEntries.Find( x => x.RowName == otherRow.RowName );
+
+					if ( row is not null )
 					{
-						var entry = StructEntries[pair.Key];
-						TypeLibrary.Merge( entry, pair.Value );
+						TypeLibrary.Merge( row, otherRow );
 					}
 					else
 					{
-						StructEntries.Add( pair.Key, pair.Value );
+						StructEntries.Add( otherRow );
 					}
 				}
 			}
@@ -71,12 +83,12 @@ public class DataTable : GameResource
 
 		if ( StructEntries.Count > 0 )
 		{
-			JsonObject jobj = new();
+			JsonArray jarray = new();
 			Json._currentProperty = null;
-			Json.SerializeDictionary( jobj, StructEntries );
+			Json.SerializeArray( jarray, StructEntries );
 			Json._currentProperty = null;
 
-			node["StructEntries"] = jobj;
+			node["StructEntries"] = jarray;
 		}
 	}
 

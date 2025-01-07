@@ -25,7 +25,7 @@ public class DataTableEditor : DockWindow
 
 	private ToolBar _toolBar;
 
-	public Dictionary<string, RowStruct> InternalEntries = new();
+	public List<RowStruct> InternalEntries = new();
 	public int EntryCount = 0;
 
 	private TableView _tableView;
@@ -54,8 +54,8 @@ public class DataTableEditor : DockWindow
 
 		EntryCount = _dataTable.EntryCount;
 
-		foreach ( var pair in _dataTable.StructEntries )
-			InternalEntries.Add( pair.Key, TypeLibrary.Clone<RowStruct>( pair.Value ) );
+		foreach ( var row in _dataTable.StructEntries )
+			InternalEntries.Add( TypeLibrary.Clone<RowStruct>( row ) );
 
 		_previousJson = SerializeEntries();
 
@@ -76,9 +76,9 @@ public class DataTableEditor : DockWindow
 
 	private string SerializeEntries()
 	{
-		JsonObject jobj = new();
-		Json.SerializeDictionary( jobj, InternalEntries );
-		return jobj.ToJsonString();
+		JsonArray jarray = new();
+		Json.SerializeArray( jarray, InternalEntries );
+		return jarray.ToJsonString();
 	}
 
 	[Shortcut( "editor.undo", "CTRL+Z", ShortcutType.Window )]
@@ -87,7 +87,7 @@ public class DataTableEditor : DockWindow
 		if ( _undoStack.Undo() is UndoOp op )
 		{
 			Json._currentProperty = null;
-			InternalEntries = (Dictionary<string, RowStruct>)Json.DeserializeDictionary( JsonNode.Parse( op.undoBuffer )?.AsObject(), typeof(Dictionary<string, RowStruct>) );
+			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.undoBuffer )?.AsArray(), typeof(List<RowStruct>) );
 			Json._currentProperty = null;
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
@@ -98,14 +98,14 @@ public class DataTableEditor : DockWindow
 			_tableView.ListView.Selection.Clear();
 			foreach ( var rowName in undoState.SelectedNames )
 			{
-				var pair = InternalEntries.FirstOrDefault( x => x.Key == rowName );
-				if ( pair.Key is not null )
-					_tableView.ListView.Selection.Add( pair );
+				var row = InternalEntries.FirstOrDefault( x => x.RowName == rowName );
+				if ( row is not null )
+					_tableView.ListView.Selection.Add( row );
 			}
 
-			var _pair = InternalEntries.FirstOrDefault( x => x.Key == undoState.SheetRowName );
-			if ( _pair.Key is not null )
-				PopulateControlSheet( _pair.Value );
+			var _row = InternalEntries.FirstOrDefault( x => x.RowName == undoState.SheetRowName );
+			if ( _row is not null )
+				PopulateControlSheet( _row );
 		}
 	}
 
@@ -115,7 +115,7 @@ public class DataTableEditor : DockWindow
 		if ( _undoStack.Redo() is UndoOp op )
 		{
 			Json._currentProperty = null; // @TODO: This is dumb. DO BETTER!
-			InternalEntries = (Dictionary<string, RowStruct>)Json.DeserializeDictionary( JsonNode.Parse( op.redoBuffer )?.AsObject(), typeof(Dictionary<string, RowStruct>) );
+			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
 			Json._currentProperty = null;
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
@@ -126,14 +126,14 @@ public class DataTableEditor : DockWindow
 			_tableView.ListView.Selection.Clear();
 			foreach ( var rowName in redoState.SelectedNames )
 			{
-				var pair = InternalEntries.FirstOrDefault( x => x.Key == rowName );
-				if ( pair.Key is not null )
-					_tableView.ListView.Selection.Add( pair );
+				var row = InternalEntries.FirstOrDefault( x => x.RowName == rowName );
+				if ( row is not null )
+					_tableView.ListView.Selection.Add( row );
 			}
 
-			var _pair = InternalEntries.FirstOrDefault( x => x.Key == redoState.SheetRowName );
-			if ( _pair.Key is not null )
-				PopulateControlSheet( _pair.Value );
+			var _row = InternalEntries.FirstOrDefault( x => x.RowName == redoState.SheetRowName );
+			if ( _row is not null )
+				PopulateControlSheet( _row );
 		}
 	}
 
@@ -246,15 +246,14 @@ public class DataTableEditor : DockWindow
 		if ( InternalEntries.Count > 0 )
 		{
 			_tableView.ListView.Selection.Add( InternalEntries.First() );
-			PopulateControlSheet( InternalEntries.First().Value );
-			_sheetRowName = InternalEntries.First().Key;
+			_sheetRowName = InternalEntries.First().RowName;
+			PopulateControlSheet( InternalEntries.First() );
 		}
 
 		_tableView.ItemClicked = o =>
 		{
-			var pair = (KeyValuePair<string, RowStruct>)o;
-			PopulateControlSheet( pair.Value );
-			_sheetRowName = pair.Key;
+			//_sheetRowName = pair.Key;
+			PopulateControlSheet( o );
 		};
 
 		_tableEditor.Layout.Add( _tableView );
@@ -296,15 +295,12 @@ public class DataTableEditor : DockWindow
 		DockManager.RegisterDockType( "Row Editor", "tune", null, false );
 		DockManager.RegisterDockType( "Undo History", "history", null, false );
 
-		List<string> nullKeys = new();
-		foreach ( var pair in InternalEntries )
+		int i;
+		for ( i = InternalEntries.Count - 1; i >= 0; i-- )
 		{
-			if ( pair.Value is null )
-				nullKeys.Add( pair.Key );
+			if ( InternalEntries[i] is null )
+				InternalEntries.RemoveAt( i );
 		}
-
-		foreach ( var key in nullKeys )
-			InternalEntries.Remove( key );
 
 		_rowEditor = new(this){ WindowTitle = "Row Editor" };
 		_rowEditor.Layout = Layout.Column();
@@ -357,8 +353,8 @@ public class DataTableEditor : DockWindow
 		rowNameCol.TextColor = Color.Parse( "#e1913c" ).GetValueOrDefault();
 		rowNameCol.Value = o =>
 		{
-			var pair = (KeyValuePair<string, RowStruct>)o;
-			return pair.Key;
+			var row = (RowStruct)o;
+			return row.RowName;
 		};
 
 		foreach ( var property in structType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
@@ -370,8 +366,8 @@ public class DataTableEditor : DockWindow
 			col.Name = property.Name;
 			col.Value = o =>
 			{
-				var pair = (KeyValuePair<string, RowStruct>)o;
-				return property.GetValue( pair.Value )?.ToString() ?? "";
+				var row = (RowStruct)o;
+				return property.GetValue( row )?.ToString() ?? "";
 			};
 		}
 
@@ -381,15 +377,15 @@ public class DataTableEditor : DockWindow
 		if ( InternalEntries.Count > 0 )
 		{
 			_tableView.ListView.Selection.Add( InternalEntries.First() );
-			PopulateControlSheet( InternalEntries.First().Value );
-			_sheetRowName = InternalEntries.First().Key;
+			_sheetRowName = InternalEntries.First().RowName;
+			PopulateControlSheet( InternalEntries.First() );
 		}
 
 		_tableView.ItemClicked = o =>
 		{
-			var pair = (KeyValuePair<string, RowStruct>)o;
-			PopulateControlSheet( pair.Value );
-			_sheetRowName = pair.Key;
+			//var pair = (KeyValuePair<string, RowStruct>)o;
+			//_sheetRowName = pair.Key;
+			PopulateControlSheet( o );
 		};
 
 		_tableEditor.Layout.Add( _tableView );
@@ -431,7 +427,7 @@ public class DataTableEditor : DockWindow
 		if ( _undoStack.SetUndoLevel( level ) is UndoOp op )
 		{
 			Json._currentProperty = null; // @TODO: This is dumb. DO BETTER!
-			InternalEntries = (Dictionary<string, RowStruct>)Json.DeserializeDictionary( JsonNode.Parse( op.redoBuffer )?.AsObject(), typeof(Dictionary<string, RowStruct>) );
+			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
 			Json._currentProperty = null;
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
@@ -519,21 +515,18 @@ public class DataTableEditor : DockWindow
 			MarkUnsaved();
 
 		List<object> newSelections = new();
-		foreach ( KeyValuePair<string, RowStruct> pair in _tableView.ListView.Selection )
+		foreach ( RowStruct row in _tableView.ListView.Selection )
 		{
-			var o = TypeLibrary.Clone<RowStruct>( pair.Value );
-			//o.RowName = $"NewEntry_{EntryCount++}";
+			var o = TypeLibrary.Clone<RowStruct>( row );
+			o.RowName = $"NewEntry_{EntryCount++}";
 
-			string key = $"NewEntry_{EntryCount++}";
-			KeyValuePair<string, RowStruct> newPair = new(key, o);
+			InternalEntries.Add( o );
+			_tableView.AddItem( o );
 
-			InternalEntries.Add( key, o );
-			_tableView.AddItem( newPair );
-
+			//_sheetRowName = key;
 			PopulateControlSheet( o );
-			_sheetRowName = key;
 
-			newSelections.Add( newPair );
+			newSelections.Add( o );
 		}
 
 		_tableView.ListView.Selection.Clear();
@@ -548,8 +541,8 @@ public class DataTableEditor : DockWindow
 	{
 		List<string> result = new();
 
-		foreach ( KeyValuePair<string, RowStruct> pair in _tableView.ListView.Selection )
-			result.Add( pair.Key );
+		foreach ( RowStruct row in _tableView.ListView.Selection )
+			result.Add( row.RowName );
 
 		return result;
 	}
@@ -565,27 +558,25 @@ public class DataTableEditor : DockWindow
 		_previousEditorState = new(GetSelectedNames(), _sheetRowName);
 
 		int index = -1;
-		string key = string.Empty;
-		foreach ( KeyValuePair<string, RowStruct> pair in _tableView.ListView.Selection )
+		foreach ( RowStruct row in _tableView.ListView.Selection )
 		{
-			var tuple = InternalEntries.Index().First( x => x.Item.Key == pair.Key );
+			var tuple = InternalEntries.Index().First( x => x.Item.RowName == row.RowName );
 			index = tuple.Index - 1;
 
-			var tuple2 = InternalEntries.Index().FirstOrDefault( x => x.Index == index );
-			key = tuple2.Item.Key;
-
-			_tableView.ListView.RemoveItem( pair );
-			InternalEntries.Remove( pair.Key );
+			_tableView.ListView.RemoveItem( row );
+			InternalEntries.Remove( row );
 		}
 
 		_tableView.ListView.Selection.Clear();
 
-		if ( key is not null && InternalEntries.ContainsKey( key ) )
+		if ( index < 0 )
+			index = 0;
+		if ( index < InternalEntries.Count )
 		{
-			_tableView.ListView.Selection.Add( new KeyValuePair<string, RowStruct>(key, InternalEntries[key]) );
+			_tableView.ListView.Selection.Add( InternalEntries[index] );
 
-			PopulateControlSheet( InternalEntries[key] );
-			_sheetRowName = key;
+			//_sheetRowName = key;
+			PopulateControlSheet( InternalEntries[index] );
 		}
 
 		EditorState state = new(GetSelectedNames(), _sheetRowName);
@@ -607,25 +598,23 @@ public class DataTableEditor : DockWindow
 		_previousEditorState = new(GetSelectedNames(), _sheetRowName);
 
 		var o = TypeLibrary.Create<RowStruct>( _dataTable.StructType );
+		o.RowName = $"NewEntry_{EntryCount++}";
 
-		string key = $"NewEntry_{EntryCount++}";
-		KeyValuePair<string, RowStruct> newPair = new(key, o);
-
-		InternalEntries.Add( key, o );
-		_tableView.AddItem( newPair );
+		InternalEntries.Add( o );
+		_tableView.AddItem( o );
 
 		_tableView.ListView.Selection.Clear();
-		_tableView.ListView.Selection.Add( newPair );
+		_tableView.ListView.Selection.Add( o );
 
+		//_sheetRowName = key;
 		PopulateControlSheet( o );
-		_sheetRowName = key;
 
-		_tableView.ListView.ScrollTo( newPair );
+		_tableView.ListView.ScrollTo( o );
 
 		EditorState state = new(GetSelectedNames(), _sheetRowName);
 
 		var json = SerializeEntries();
-		_undoStack.PushUndo( $"Add Entry {key}", _previousJson, _previousEditorState );
+		_undoStack.PushUndo( $"Add Entry {o.RowName}", _previousJson, _previousEditorState );
 		OnUndoPushed();
 		_undoStack.PushRedo( json, state );
 		_previousJson = json;
@@ -655,16 +644,14 @@ public class DataTableEditor : DockWindow
 		{
 			var row = selection as RowStruct;
 			var o = TypeLibrary.Clone<RowStruct>( row );
+			o.RowName = $"NewEntry_{EntryCount++}";
 
-			string key = $"NewEntry_{EntryCount++}";
-			KeyValuePair<string, RowStruct> newPair = new(key, o);
-
-			InternalEntries.Add( key, o );
-			_tableView.AddItem( newPair );
+			InternalEntries.Add( o );
+			_tableView.AddItem( o );
 
 			PopulateControlSheet( o );
 
-			newSelections.Add( newPair );
+			newSelections.Add( o );
 		}
 
 		_tableView.ListView.Selection.Clear();
@@ -693,26 +680,40 @@ public class DataTableEditor : DockWindow
 		foreach ( var pair in InternalEntries )
 			_dataTable.StructEntries.Add( pair.Key, pair.Value );*/
 
-		List<string> nullKeys = new();
-		foreach ( var pair in _dataTable.StructEntries )
+		int i;
+		for ( i = _dataTable.StructEntries.Count - 1; i >= 0; i-- )
 		{
-			if ( !InternalEntries.ContainsKey( pair.Key ) )
-				nullKeys.Add( pair.Key );
+			var row = _dataTable.StructEntries[i];
+			var otherRow = InternalEntries.Find( x => x.RowName == row.RowName );
+			if ( otherRow is null )
+				_dataTable.StructEntries.RemoveAt( i );
 		}
 
-		foreach ( var key in nullKeys )
-			_dataTable.StructEntries.Remove( key );
-
-		foreach ( var pair in InternalEntries )
+		/*foreach ( var pair in InternalEntries )
 		{
 			if ( _dataTable.StructEntries.ContainsKey( pair.Key ) )
 			{
+				Log.Info( "Merging" );
 				var entry = _dataTable.StructEntries[pair.Key];
 				TypeLibrary.Merge( entry, pair.Value );
 			}
 			else
 			{
+				Log.Info( "Cloning" );
 				_dataTable.StructEntries.Add( pair.Key, TypeLibrary.Clone<RowStruct>( pair.Value ) );
+			}
+		}*/
+
+		foreach ( var internalRow in InternalEntries )
+		{
+			var row = _dataTable.StructEntries.Find( x => x.RowName == internalRow.RowName );
+			if ( row is not null )
+			{
+				TypeLibrary.Merge( row, internalRow );
+			}
+			else
+			{
+				_dataTable.StructEntries.Add( TypeLibrary.Clone<RowStruct>( internalRow ) );
 			}
 		}
 

@@ -51,7 +51,7 @@ internal static class Json
 	public static void SerializeObject( JsonObject jo, object value )
 	{
 		SerializeProperties( jo, value );
-		jo["__type"] = value.GetType().Name;
+		jo["__type"] = value.GetType().FullName;
 	}
 
 	public static void SerializeArray( JsonArray ja, IEnumerable array )
