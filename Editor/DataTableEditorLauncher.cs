@@ -13,7 +13,7 @@ namespace DataTablesEditor;
 [EditorForAssetType( "dt" )]
 public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 {
-	public static HashSet<int> OpenAssetEditors = new();
+	public static Dictionary<int, DataTableEditor> OpenAssetEditors = new();
 
 	public bool CanOpenMultipleAssets => false;
 
@@ -108,17 +108,19 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 
 	private void OpenEditor()
 	{
-		if ( !OpenAssetEditors.Contains( _asset.Path.FastHash() ) )
-			OpenAssetEditors.Add( _asset.Path.FastHash() );
-
 		DataTableEditor editor = new(_asset, _dataTable);
+		if ( !OpenAssetEditors.ContainsKey( _asset.Path.FastHash() ) )
+			OpenAssetEditors.Add( _asset.Path.FastHash(), editor );
+
 		Close();
 	}
 
 	public void AssetOpen( Asset asset )
 	{
-		if ( OpenAssetEditors.Contains( asset.Path.FastHash() ) )
+		if ( OpenAssetEditors.TryGetValue( asset.Path.FastHash(), out DataTableEditor editor ) )
 		{
+			editor.Show();
+			editor.Focus();
 			Close();
 			return;
 		}
