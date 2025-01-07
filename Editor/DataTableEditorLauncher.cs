@@ -119,10 +119,15 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 	{
 		if ( OpenAssetEditors.TryGetValue( asset.Path.FastHash(), out DataTableEditor editor ) )
 		{
-			editor.Show();
-			editor.Focus();
-			Close();
-			return;
+			if ( editor.IsValid )
+			{
+				editor.Show();
+				editor.Focus();
+				Close();
+				return;
+			}
+
+			OpenAssetEditors.Remove( asset.Path.FastHash() );
 		}
 
 		_asset = asset;
