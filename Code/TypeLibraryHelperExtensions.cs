@@ -21,10 +21,7 @@ internal static class TypeLibraryHelperExtensions
 		var targetType = target.GetType();
 		TypeDescription type = typeLibrary.GetType( targetType );
 
-		if ( type.IsValueType )
-			return target;
-
-		if ( targetType.IsAssignableTo( typeof(Resource) ) )
+		if ( type.IsValueType || targetType.IsAssignableTo( typeof(Resource) ) )
 			return target;
 
 		if ( targetType.IsAssignableTo( typeof(IList) ) )
@@ -68,13 +65,7 @@ internal static class TypeLibraryHelperExtensions
 		var targetType = target.GetType();
 		TypeDescription type = typeLibrary.GetType( targetType );
 
-		if ( type.IsValueType )
-			return target;
-
-		if ( targetType.IsAssignableTo( typeof(Resource) ) )
-			return target;
-
-		if ( targetType.IsAssignableTo( typeof(string) ) )
+		if ( type.IsValueType || targetType.IsAssignableTo( typeof(string) ) || targetType.IsAssignableTo( typeof(Resource) ) )
 			return target;
 
 		object instance = typeLibrary.Create<object>( targetType );
