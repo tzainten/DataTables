@@ -10,90 +10,85 @@ using Sandbox.Diagnostics;
 
 namespace DataTables;
 
+[AttributeUsage(AttributeTargets.Property)]
+public class JsonTypeAnnotateAttribute : Attribute
+{
+}
+
 internal static class Json
 {
-	public static PropertyDescription _currentProperty;
-
-	public static void SerializeProperty( JsonObject jo, string name, object value )
+	public static JsonSerializerOptions Options()
 	{
-		switch ( value.GetObjectType() )
-		{
-			case ObjectType.Number:
-				double.TryParse( value.ToString(), out double result );
-				jo[name] = result;
-				break;
-			case ObjectType.Object:
-				JsonObject new_jo = new();
-				SerializeObject(new_jo, value);
-				jo[name] = new_jo;
-				break;
-			case ObjectType.String:
-				jo[name] = (string)value;
-				break;
-			case ObjectType.Boolean:
-				jo[name] = (bool)value;
-				break;
-			case ObjectType.Array:
-				JsonArray ja = new();
-				SerializeArray(ja, value as IEnumerable);
-				jo[name] = ja;
-				break;
-			case ObjectType.Dictionary:
-				JsonObject jd = new();
-				SerializeDictionary(jd, value as IDictionary);
-				jo[name] = jd;
-				break;
-			case ObjectType.Unknown:
-				throw new Exception( "Unknown object type." );
-		}
+		return new JsonSerializerOptions() { WriteIndented = true };
 	}
 
-	public static void SerializeObject( JsonObject jo, object value )
+	public static JsonNode Serialize( object target, bool typeAnnotate )
 	{
-		SerializeProperties( jo, value );
-		jo["__type"] = value.GetType().FullName;
+		var type = target.GetType();
+		var typeDesc = TypeLibrary.GetType( type );
+
+		if ( typeDesc.IsValueType || type.IsAssignableTo( typeof(Resource) ) ||
+		     type.IsAssignableTo( typeof(string) ) )
+			return Sandbox.Json.ToNode( target );
+
+		if ( type.IsAssignableTo( typeof(IList) ) )
+			return SerializeList( (IList)target, typeAnnotate );
+
+		if ( type.IsAssignableTo( typeof(IDictionary) ) )
+			return SerializeDictionary( (IDictionary)target, typeAnnotate );
+
+		var node = SerializeObject( target, typeAnnotate );
+		if ( typeAnnotate )
+			node["__type"] = typeDesc.FullName;
+		return node;
 	}
 
-	public static void SerializeArray( JsonArray ja, IEnumerable array )
+	public static JsonNode SerializeDictionary( IDictionary target, bool typeAnnotate )
 	{
-		foreach ( var elem in array )
-		{
-			if ( elem is null )
-				continue;
+		JsonObject jdict = new();
 
-			if (elem.GetObjectType() == ObjectType.Object)
-			{
-				JsonObject new_jo = new();
-				SerializeObject( new_jo, elem );
-				ja.Add(new_jo);
-			}
-			else
-			{
-				//SerializeProperty( writer, elem );
-				ja.Add(elem);
-			}
-		}
-	}
-
-	public static void SerializeDictionary( JsonObject jo, IDictionary dictionary )
-	{
-		foreach ( var key in dictionary.Keys )
+		foreach ( var key in target.Keys )
 		{
 			if ( key is null )
 				continue;
 
-			var value = dictionary[key];
-			if (value is null)
+			var value = target[key];
+			if ( value is null )
 				continue;
 
-			SerializeProperty( jo, key.ToString(), value );
+			jdict.Add( key.ToString(), Serialize( value, typeAnnotate ) );
 		}
+
+		return jdict;
 	}
 
-	public static void SerializeProperties( JsonObject jo, object target )
+	public static JsonArray SerializeList( IList target, bool typeAnnotate )
 	{
-		TypeDescription type = TypeLibrary.GetType( target.GetType().Name );
-		foreach ( var property in type.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+		JsonArray jarray = new();
+
+		foreach ( var elem in target )
+		{
+			if ( elem is null )
+				continue;
+
+			jarray.Add( Serialize( elem, typeAnnotate ) );
+		}
+
+		return jarray;
+	}
+
+	public static JsonObject SerializeObject( object target, bool typeAnnotate )
+	{
+		JsonObject jobj = new();
+
+		var type = target.GetType();
+		var typeDesc = TypeLibrary.GetType( type );
+
+		if ( typeDesc.IsValueType || type.IsAssignableTo( typeof(Resource) ) ||
+		     type.IsAssignableTo( typeof(string) ) )
+			return Sandbox.Json.ToNode( target ).AsObject();
+
+		foreach ( var property in typeDesc.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
 		{
 			var hasIgnore = property.HasAttribute<JsonIgnoreAttribute>();
 			var hasInclude = property.HasAttribute<JsonIncludeAttribute>();
@@ -105,32 +100,11 @@ internal static class Json
 				if ( value is null )
 					continue;
 
-				var valueType = TypeLibrary.GetType( value.GetType() );
-				if ( valueType.TargetType.IsAssignableTo( typeof(Resource) ) )
-				{
-					jo[property.Name] = JsonNode.Parse( Sandbox.Json.Serialize( value ) );
-					continue;
-				}
-
-				if ( valueType.IsValueType )
-				{
-					jo[property.Name] = JsonNode.Parse( Sandbox.Json.Serialize( value ) );
-					continue;
-				}
-
-				_currentProperty = property;
-				SerializeProperty(jo, property.Name, value);
+				jobj[property.Name] = Serialize( value, property.HasAttribute( typeof(InstancedAttribute) ) );
 			}
 		}
-	}
 
-	public static JsonObject Serialize( object target )
-	{
-		JsonObject jo = new();
-
-		SerializeObject( jo, target );
-
-		return jo;
+		return jobj;
 	}
 
 	public static T Deserialize<T>( string json )
@@ -142,228 +116,118 @@ internal static class Json
 				CommentHandling = JsonCommentHandling.Skip
 			});
 
-		JsonObject obj = Sandbox.Json.ParseToJsonObject( ref reader );
-		if ( obj is null )
+		JsonNode node = JsonNode.Parse( json );
+		if ( node is null )
 			return default;
 
-		_currentProperty = null;
-		return (T)DeserializeObject( obj, TypeLibrary.GetType( typeof(T) ) );
+		return (T)DeserializeInternal( node, typeof(T) );
 	}
 
-	public static object DeserializeObject( JsonObject target, TypeDescription targetType = null )
+	public static object DeserializeInternal( JsonNode node, Type type )
 	{
-		target.TryGetPropertyValue( "__type", out var __type );
-
-		TypeDescription type = null;
-		object instance = null;
-
-		if ( __type is not null )
+		TypeDescription typeDesc = TypeLibrary.GetType( type );
+		if ( typeDesc is not null && typeDesc.IsValueType || type.IsAssignableTo( typeof(Resource) ) ||
+		     type.IsAssignableTo( typeof(string) ) )
 		{
-			type = TypeLibrary.GetType( __type.GetValue<string>() );
-
-			if ( type.IsGenericType )
-			{
-				var listType = TypeLibrary.GetGenericArguments( _currentProperty.PropertyType ).FirstOrDefault();
-				bool isValidType = type.TargetType == listType || type.TargetType.IsSubclassOf( listType );
-				if ( !isValidType )
-				{
-					Log.Error( "Invalid List Type!" );
-					return null;
-				}
-			}
+			return Sandbox.Json.FromNode( node, type );
 		}
 
-		if ( type is null && _currentProperty is not null )
+		if ( type.IsAssignableTo( typeof(IDictionary) ) )
+			return DeserializeDictionary( node.AsObject(), type );
+
+		switch ( node.GetValueKind() )
 		{
-			if ( _currentProperty.PropertyType.IsGenericType )
-			{
-				type = TypeLibrary.GetType( TypeLibrary.GetGenericArguments( _currentProperty.PropertyType )
-					.FirstOrDefault() );
-			}
-			else
-			{
-				type = TypeLibrary.GetType( _currentProperty.PropertyType );
-			}
+			case JsonValueKind.Object:
+				return DeserializeObject( node.AsObject(), type );
+			case JsonValueKind.Array:
+				return DeserializeList( node.AsArray(), type );
+			default:
+				return Sandbox.Json.FromNode( node, type );
 		}
-		else
-		{
-			if ( type is null )
-				type = targetType;
-		}
-
-		instance = TypeLibrary.Create<object>( type.TargetType );
-
-		using var enumerator = target.GetEnumerator();
-		while ( enumerator.MoveNext() )
-		{
-			var pair = enumerator.Current;
-
-			var value = pair.Value;
-			if ( value is null )
-				continue;
-
-			var property = type.GetProperty( pair.Key );
-			if ( property is null )
-				continue;
-
-			_currentProperty = property;
-
-			if ( TypeLibrary.GetType( property.PropertyType ).IsValueType ||
-			     property.PropertyType.IsAssignableTo( typeof(Resource) ) )
-			{
-				property.SetValue( instance, Sandbox.Json.FromNode( value, property.PropertyType ) );
-				continue;
-			}
-
-			if ( property.PropertyType.IsAssignableTo( typeof(IDictionary) ) )
-			{
-				IDictionary dictionary = DeserializeDictionary( value.AsObject() );
-				property.SetValue( instance, dictionary );
-				continue;
-			}
-
-			switch ( value.GetValueKind() )
-			{
-				case JsonValueKind.String:
-					property.SetValue( instance, value.GetValue<string>() );
-					break;
-				case JsonValueKind.False:
-				case JsonValueKind.True:
-					property.SetValue( instance, value.GetValue<bool>() );
-					break;
-				case JsonValueKind.Number:
-					var num = value.GetValue<double>();
-					if (int.TryParse(num.ToString(), out var result))
-						property.SetValue(instance, result);
-					else
-						property.SetValue(instance, value.GetValue<double>());
-					break;
-				case JsonValueKind.Array:
-					IList list = (IList)DeserializeArray( value.AsArray() );
-					property.SetValue( instance, list );
-					break;
-				case JsonValueKind.Object:
-					var previousProperty = _currentProperty;
-					property.SetValue( instance, DeserializeObject( value.AsObject() ) );
-					_currentProperty = previousProperty;
-					break;
-			}
-		}
-
-		return instance;
 	}
 
-	public static IDictionary DeserializeDictionary( JsonObject node, Type targetType = null )
+	public static IList DeserializeList( JsonArray jarray, Type type )
 	{
-		IDictionary dictionary = null;
+		IList list = TypeLibrary.Create<IList>( type );
 
-		TypeDescription type = null;
-
-		if ( _currentProperty is not null )
-		{
-			type = TypeLibrary.GetType( _currentProperty.PropertyType );
-			if ( type.TargetType.IsAssignableTo( typeof(IDictionary) ) )
-			{
-				dictionary = (IDictionary)TypeLibrary.Create<object>( _currentProperty.PropertyType );
-			}
-		}
-
-		if ( targetType is not null )
-		{
-			type = TypeLibrary.GetType( targetType );
-			if ( type.TargetType.IsAssignableTo( typeof(IDictionary) ) )
-			{
-				dictionary = (IDictionary)TypeLibrary.Create<object>( targetType );
-			}
-		}
-
-		if ( dictionary is null )
-			return dictionary;
-
-		using var enumerator = node.GetEnumerator();
+		using var enumerator = jarray.GetEnumerator();
 		while ( enumerator.MoveNext() )
 		{
-			var pair = enumerator.Current;
+			var node = enumerator.Current;
 
-			var key = pair.Key;
-			var value = pair.Value;
+			Type genericArg = TypeLibrary.GetGenericArguments( type ).First();
 
-			switch ( value.GetValueKind() )
-			{
-				case JsonValueKind.Object:
-					var previousProperty = _currentProperty;
-					var obj = DeserializeObject( value.AsObject() );
-					_currentProperty = previousProperty;
-					dictionary.Add( key, obj );
-					break;
-				case JsonValueKind.String:
-					dictionary.Add( key, value.GetValue<string>() );
-					break;
-				case JsonValueKind.False:
-				case JsonValueKind.True:
-					dictionary.Add( key, value.GetValue<bool>() );
-					break;
-				case JsonValueKind.Number:
-					dictionary.Add( key, value.GetValue<double>() );
-					break;
-			}
-		}
+			var elem = DeserializeInternal( node, genericArg );
+			if ( elem is null )
+				continue;
 
-		return dictionary;
-	}
-
-	public static object DeserializeArray( JsonArray node, Type listType = null )
-	{
-		IList list = null;
-
-		if ( _currentProperty is not null )
-		{
-			var type = TypeLibrary.GetType( _currentProperty.PropertyType );
-			if ( type.TargetType.IsAssignableTo( typeof(IList) ) )
-			{
-				list = (IList)TypeLibrary.Create<object>( _currentProperty.PropertyType );
-			}
-		}
-		else
-		{
-			if ( listType is not null )
-			{
-				list = (IList)TypeLibrary.Create<object>( listType );
-			}
-		}
-
-		if ( list is null )
-			return list;
-
-		using var enumerator = node.GetEnumerator();
-		while ( enumerator.MoveNext() )
-		{
-			var value = enumerator.Current;
-			switch ( value.GetValueKind() )
-			{
-				case JsonValueKind.Object:
-					var previousProperty = _currentProperty;
-					var obj = DeserializeObject( value.AsObject() );
-					_currentProperty = previousProperty;
-					list.Add( obj );
-					break;
-				case JsonValueKind.String:
-					list.Add( value.GetValue<string>() );
-					break;
-				case JsonValueKind.False:
-				case JsonValueKind.True:
-					list.Add( value.GetValue<bool>() );
-					break;
-				case JsonValueKind.Number:
-					var num = value.GetValue<double>();
-					if ( int.TryParse( num.ToString(), out var result ) )
-						list.Add( result );
-					else
-						list.Add( value.GetValue<double>() );
-					break;
-			}
+			if ( elem.GetType().IsAssignableTo( genericArg ) )
+				list.Add( elem );
 		}
 
 		return list;
+	}
+
+	public static IDictionary DeserializeDictionary( JsonObject jobj, Type type )
+	{
+		IDictionary dict = TypeLibrary.Create<IDictionary>( type );
+
+		using var enumerator = jobj.GetEnumerator();
+		while ( enumerator.MoveNext() )
+		{
+			var pair = enumerator.Current;
+
+			Type[] genericArgs = TypeLibrary.GetGenericArguments( type );
+
+			var key = pair.Key;
+			var node = pair.Value;
+
+			var elem = DeserializeInternal( node, genericArgs[1] );
+			if ( elem is null )
+				continue;
+
+			if ( elem.GetType().IsAssignableTo( genericArgs[1] ) )
+				dict.Add( key, elem );
+		}
+
+		return dict;
+	}
+
+	public static object DeserializeObject( JsonObject jobj, Type type )
+	{
+		jobj.TryGetPropertyValue( "__type", out JsonNode __type );
+
+		TypeDescription typeDesc = null;
+		if ( __type is not null )
+		{
+			typeDesc = TypeLibrary.GetType( __type.GetValue<string>() );
+		}
+		else
+		{
+			typeDesc = TypeLibrary.GetType( type );
+		}
+
+		if ( typeDesc is null )
+			return null;
+
+		object instance = TypeLibrary.Create<object>( typeDesc.TargetType );
+		using var enumerator = jobj.GetEnumerator();
+		while ( enumerator.MoveNext() )
+		{
+			var node = enumerator.Current;
+
+			var property = typeDesc.GetProperty( node.Key );
+			if ( property is null )
+				continue;
+
+			var value = DeserializeInternal( node.Value, property.PropertyType );
+			if ( value is null )
+				continue;
+
+			if ( value.GetType().IsAssignableTo( property.PropertyType ) )
+				property.SetValue( instance, value );
+		}
+
+		return instance;
 	}
 }

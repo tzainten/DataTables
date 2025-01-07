@@ -33,6 +33,8 @@ public class ExampleRowStruct : RowStruct
 
 	public Transform Transform { get; set; }
 
+	public List<Transform> Transforms { get; set; }
+
 	public Model Model { get; set; }
 
 	public DataTable Table { get; set; }

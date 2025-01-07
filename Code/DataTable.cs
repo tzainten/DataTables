@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Sandbox;
 
 namespace DataTables;
@@ -10,6 +12,11 @@ namespace DataTables;
 public class RowStruct
 {
 	public string RowName { get; set; }
+}
+
+[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
+public class JsonTypeAnnotate : Attribute
+{
 }
 
 [GameResource( "Data Table", "dt", "Description", Icon = "equalizer", IconBgColor = "#b0e24d" )]
@@ -40,11 +47,11 @@ public class DataTable : GameResource
 
 		if ( jobj.ContainsKey( "StructEntries" ) )
 		{
-			Json._currentProperty = null;
+			//Json._currentProperty = null;
 			List<RowStruct> structEntries =
-				(List<RowStruct>)Json.DeserializeArray( jobj["StructEntries"].AsArray(),
+				(List<RowStruct>)Json.DeserializeList( jobj["StructEntries"].AsArray(),
 					typeof(List<RowStruct>) );
-			Json._currentProperty = null;
+			//Json._currentProperty = null;
 
 			if ( StructEntries.Count == 0 )
 				StructEntries = structEntries;
@@ -84,9 +91,9 @@ public class DataTable : GameResource
 		if ( StructEntries.Count > 0 )
 		{
 			JsonArray jarray = new();
-			Json._currentProperty = null;
-			Json.SerializeArray( jarray, StructEntries );
-			Json._currentProperty = null;
+			//Json._currentProperty = null;
+			jarray = Json.SerializeList( StructEntries, true );
+			//Json._currentProperty = null;
 
 			node["StructEntries"] = jarray;
 		}

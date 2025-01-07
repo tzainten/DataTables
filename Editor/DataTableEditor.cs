@@ -77,7 +77,7 @@ public class DataTableEditor : DockWindow
 	private string SerializeEntries()
 	{
 		JsonArray jarray = new();
-		Json.SerializeArray( jarray, InternalEntries );
+		jarray = Json.SerializeList( InternalEntries, true );
 		return jarray.ToJsonString();
 	}
 
@@ -86,9 +86,7 @@ public class DataTableEditor : DockWindow
 	{
 		if ( _undoStack.Undo() is UndoOp op )
 		{
-			Json._currentProperty = null;
-			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.undoBuffer )?.AsArray(), typeof(List<RowStruct>) );
-			Json._currentProperty = null;
+			InternalEntries = (List<RowStruct>)Json.DeserializeList( JsonNode.Parse( op.undoBuffer )?.AsArray(), typeof(List<RowStruct>) );
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
 			//PopulateEditor();
@@ -114,9 +112,7 @@ public class DataTableEditor : DockWindow
 	{
 		if ( _undoStack.Redo() is UndoOp op )
 		{
-			Json._currentProperty = null; // @TODO: This is dumb. DO BETTER!
-			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
-			Json._currentProperty = null;
+			InternalEntries = (List<RowStruct>)Json.DeserializeList( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
 			//PopulateEditor();
@@ -426,9 +422,7 @@ public class DataTableEditor : DockWindow
 	{
 		if ( _undoStack.SetUndoLevel( level ) is UndoOp op )
 		{
-			Json._currentProperty = null; // @TODO: This is dumb. DO BETTER!
-			InternalEntries = (List<RowStruct>)Json.DeserializeArray( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
-			Json._currentProperty = null;
+			InternalEntries = (List<RowStruct>)Json.DeserializeList( JsonNode.Parse( op.redoBuffer )?.AsArray(), typeof(List<RowStruct>) );
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
 			//PopulateEditor();
