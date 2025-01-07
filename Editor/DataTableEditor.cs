@@ -222,8 +222,8 @@ public class DataTableEditor : DockWindow
 		rowNameCol.TextColor = Color.Parse( "#e1913c" ).GetValueOrDefault();
 		rowNameCol.Value = o =>
 		{
-			var pair = (KeyValuePair<string, RowStruct>)o;
-			return pair.Key;
+			var row = (RowStruct)o;
+			return row.RowName;
 		};
 
 		foreach ( var property in structType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
@@ -235,8 +235,8 @@ public class DataTableEditor : DockWindow
 			col.Name = property.Name;
 			col.Value = o =>
 			{
-				var pair = (KeyValuePair<string, RowStruct>)o;
-				return property.GetValue( pair.Value )?.ToString() ?? "";
+				var row = (RowStruct)o;
+				return property.GetValue( row )?.ToString() ?? "";
 			};
 		}
 
