@@ -133,18 +133,19 @@ internal static class TypeLibraryHelperExtensions
 			return;
 		}
 
+		var fieldType = typeLibrary.GetType( value.GetType() ); // @TODO: field.TypeDescription.IsValueType doesn't work here. Not sure if it should?
+
+		if ( fieldType.IsValueType || fieldType.TargetType.IsAssignableTo( typeof(string) ) ||
+		     value.GetType().IsAssignableTo( typeof(Resource) ) )
+		{
+			field.SetValue( target, field.GetValue( merger ) );
+			return;
+		}
+
 		var targetValue = field.GetValue( target );
 		if ( targetValue is null )
 		{
 			field.SetValue( target, typeLibrary.CloneInternal( value ) );
-			return;
-		}
-
-		var fieldType = typeLibrary.GetType( value.GetType() ); // @TODO: field.TypeDescription.IsValueType doesn't work here. Not sure if it should?
-
-		if ( fieldType.IsValueType || fieldType.TargetType.IsAssignableTo( typeof(string) ) )
-		{
-			field.SetValue( target, field.GetValue( merger ) );
 			return;
 		}
 
@@ -187,7 +188,11 @@ internal static class TypeLibraryHelperExtensions
 			return;
 		}
 
-		if ( value.GetType().IsAssignableTo( typeof(Resource) ) )
+		var propertyType = typeLibrary.GetType( value.GetType() );
+		var propertyTargetType = propertyType.TargetType;
+
+		if ( propertyType.IsValueType || propertyTargetType.IsAssignableTo( typeof(string) ) ||
+		     propertyTargetType.IsAssignableTo( typeof(Resource) ) )
 		{
 			property.SetValue( target, value );
 			return;
@@ -197,14 +202,6 @@ internal static class TypeLibraryHelperExtensions
 		if ( targetValue is null )
 		{
 			property.SetValue( target, typeLibrary.CloneInternal( value ) );
-			return;
-		}
-
-		var propertyType = typeLibrary.GetType( value.GetType() );
-
-		if ( propertyType.IsValueType || propertyType.TargetType.IsAssignableTo( typeof(string) ) )
-		{
-			property.SetValue( target, property.GetValue( merger ) );
 			return;
 		}
 
