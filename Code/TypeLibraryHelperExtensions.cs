@@ -242,7 +242,24 @@ internal static class TypeLibraryHelperExtensions
 					}
 					else
 					{
-						typeLibrary.Merge( targetDict[key], value );
+						var typeA = targetDict[key].GetType();
+						var typeB = value.GetType();
+
+						if ( typeB.IsAssignableTo( typeA ) )
+						{
+							if ( typeB == typeA )
+							{
+								Merge( typeLibrary, targetDict[key], value );
+							}
+							else
+							{
+								targetDict[key] = typeLibrary.CloneInternal( value );
+							}
+						}
+						else
+						{
+							targetDict[key] = typeLibrary.CloneInternal( value );
+						}
 					}
 				}
 			}
@@ -284,7 +301,24 @@ internal static class TypeLibraryHelperExtensions
 					}
 					else
 					{
-						Merge( typeLibrary, targetList[i], mergerList[i] );
+						var typeA = targetList[i].GetType();
+						var typeB = mergerList[i].GetType();
+
+						if ( typeB.IsAssignableTo( typeA ) )
+						{
+							if ( typeB == typeA )
+							{
+								Merge( typeLibrary, targetList[i], mergerList[i] );
+							}
+							else
+							{
+								targetList[i] = typeLibrary.CloneInternal( mergerList[i] );
+							}
+						}
+						else
+						{
+							targetList[i] = typeLibrary.CloneInternal( mergerList[i] );
+						}
 					}
 				}
 			}
