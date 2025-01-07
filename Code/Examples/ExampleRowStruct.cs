@@ -17,6 +17,8 @@ public class CoolThing2 : Something
 	public int IntegerProperty { get; set; }
 
 	public List<int> Numbers { get; set; }
+
+	public Model Model { get; set; }
 }
 
 public class ExampleRowStruct : RowStruct
@@ -30,4 +32,12 @@ public class ExampleRowStruct : RowStruct
 	public List<Something> Somethings { get; set; }
 
 	public Model Model { get; set; }
+
+	public DataTable Table { get; set; }
+
+	public Material Material { get; set; }
+
+	public Texture Texture { get; set; }
+
+	public Clothing Clothing { get; set; }
 }
