@@ -37,7 +37,7 @@ internal static class Json
 		if ( type.IsAssignableTo( typeof(IDictionary) ) )
 			return SerializeDictionary( (IDictionary)target, typeAnnotate );
 
-		var node = SerializeObject( target, typeAnnotate );
+		var node = typeAnnotate ? SerializeObject( target, true ) : Sandbox.Json.ToNode( target );
 		if ( typeAnnotate )
 			node["__type"] = typeDesc.FullName;
 		return node;
