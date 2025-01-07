@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
@@ -12,6 +13,8 @@ namespace DataTablesEditor;
 [EditorForAssetType( "dt" )]
 public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 {
+	public static HashSet<int> OpenAssetEditors = new();
+
 	public bool CanOpenMultipleAssets => false;
 
 	private Asset _asset;
@@ -105,12 +108,21 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 
 	private void OpenEditor()
 	{
+		if ( !OpenAssetEditors.Contains( _asset.Path.FastHash() ) )
+			OpenAssetEditors.Add( _asset.Path.FastHash() );
+
 		DataTableEditor editor = new(_asset, _dataTable);
 		Close();
 	}
 
 	public void AssetOpen( Asset asset )
 	{
+		if ( OpenAssetEditors.Contains( asset.Path.FastHash() ) )
+		{
+			Close();
+			return;
+		}
+
 		_asset = asset;
 		_dataTable = _asset.LoadResource<DataTable>();
 

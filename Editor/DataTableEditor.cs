@@ -733,6 +733,10 @@ public class DataTableEditor : DockWindow
 				Close();
 			});
 		}
+		else
+		{
+			DataTableEditorLauncher.OpenAssetEditors.Remove( _asset.Path.FastHash() );
+		}
 
 		return !_isUnsaved;
 	}
