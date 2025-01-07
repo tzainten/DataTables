@@ -14,11 +14,6 @@ public class RowStruct
 	public string RowName { get; set; }
 }
 
-[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
-public class JsonTypeAnnotate : Attribute
-{
-}
-
 [GameResource( "Data Table", "dt", "Description", Icon = "equalizer", IconBgColor = "#b0e24d" )]
 public class DataTable : GameResource
 {

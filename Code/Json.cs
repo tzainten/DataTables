@@ -100,7 +100,7 @@ internal static class Json
 				if ( value is null )
 					continue;
 
-				jobj[property.Name] = Serialize( value, property.HasAttribute( typeof(InstancedAttribute) ) );
+				jobj[property.Name] = Serialize( value, property.HasAttribute( typeof(JsonTypeAnnotateAttribute) ) );
 			}
 		}
 
