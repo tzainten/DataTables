@@ -440,10 +440,10 @@ public class DataTableEditor : DockWindow
 
 	public void BuildMenuBar()
 	{
-		/*var file = MenuBar.AddMenu( "File" );
-		file.AddOption( "New", "common/new.png", null, "editor.new" ).StatusTip = "New Graph";
-		file.AddOption( "Open", "common/open.png", null, "editor.open" ).StatusTip = "Open Graph";
-		file.AddOption( "Save", "common/save.png", null, "editor.save" ).StatusTip = "Save Graph";*/
+		var file = MenuBar.AddMenu( "File" );
+		//file.AddOption( "New", "common/new.png", null, "editor.new" ).StatusTip = "New Graph";
+		//file.AddOption( "Open", "common/open.png", null, "editor.open" ).StatusTip = "Open Graph";
+		file.AddOption( "Save", "common/save.png", Save, "editor.save" ).StatusTip = "Save Data Table";
 
 		var view = MenuBar.AddMenu( "View" );
 		view.AboutToShow += () => OnViewMenu( view );
