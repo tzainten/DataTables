@@ -31,6 +31,8 @@ public class ExampleRowStruct : RowStruct
 	[Instanced]
 	public List<Something> Somethings { get; set; }
 
+	public Transform Transform { get; set; }
+
 	public Model Model { get; set; }
 
 	public DataTable Table { get; set; }

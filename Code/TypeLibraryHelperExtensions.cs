@@ -68,31 +68,32 @@ internal static class TypeLibraryHelperExtensions
 		var targetType = target.GetType();
 		TypeDescription type = typeLibrary.GetType( targetType );
 
-		object instance = null;
+		if ( type.IsValueType )
+			return target;
+
 		if ( targetType.IsAssignableTo( typeof(Resource) ) )
-			instance = target;
-		else if ( targetType.IsAssignableTo( typeof(string) ) )
-			instance = new String( (string)target );
-		else
+			return target;
+
+		if ( targetType.IsAssignableTo( typeof(string) ) )
+			return target;
+
+		object instance = typeLibrary.Create<object>( targetType );
+		foreach ( var field in type.Fields.Where( x => x.IsPublic && !x.IsStatic ) )
 		{
-			instance = typeLibrary.Create<object>( targetType );
-			foreach ( var field in type.Fields.Where( x => x.IsPublic && !x.IsStatic ) )
-			{
-				var value = field.GetValue( target );
-				if ( value is null )
-					continue;
+			var value = field.GetValue( target );
+			if ( value is null )
+				continue;
 
-				field.SetValue( instance, CloneInternal( typeLibrary, value ) );
-			}
+			field.SetValue( instance, CloneInternal( typeLibrary, value ) );
+		}
 
-			foreach ( var property in type.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
-			{
-				var value = property.GetValue( target );
-				if ( value is null )
-					continue;
+		foreach ( var property in type.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+		{
+			var value = property.GetValue( target );
+			if ( value is null )
+				continue;
 
-				property.SetValue( instance, CloneInternal( typeLibrary, value ) );
-			}
+			property.SetValue( instance, CloneInternal( typeLibrary, value ) );
 		}
 
 		return instance;
