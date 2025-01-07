@@ -163,6 +163,60 @@ internal static class TypeLibraryHelperExtensions
 		}
 	}
 
+	private static void MergeProperty( this TypeLibrary typeLibrary, PropertyDescription property, object target, object merger )
+	{
+		Assert.True( target is not null );
+
+		var mergerType = typeLibrary.GetType( merger.GetType() );
+		if ( mergerType.IsGenericType )
+			return;
+
+		var value = property.GetValue( merger );
+		if ( value is null )
+		{
+			property.SetValue( target, null );
+			return;
+		}
+
+		var targetValue = property.GetValue( target );
+		if ( targetValue is null )
+		{
+			property.SetValue( target, typeLibrary.CloneInternal( value ) );
+			return;
+		}
+
+		var propertyType = typeLibrary.GetType( value.GetType() );
+
+		if ( propertyType.IsValueType || propertyType.TargetType.IsAssignableTo( typeof(string) ) )
+		{
+			property.SetValue( target, property.GetValue( merger ) );
+			return;
+		}
+
+		if ( propertyType.TargetType.IsAssignableTo( typeof(IList) ) )
+		{
+			IList targetList = (IList)targetValue;
+			IList mergerList = (IList)value;
+
+			MergeList( typeLibrary, targetList, mergerList );
+			return;
+		}
+
+		if ( propertyType.TargetType.IsAssignableTo( typeof(IDictionary) ) )
+		{
+			IDictionary targetDict = (IDictionary)targetValue;
+			IDictionary mergerDict = (IDictionary)value;
+
+			MergeDictionary( typeLibrary, targetDict, mergerDict );
+			return;
+		}
+
+		foreach ( var innerProperty in propertyType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+		{
+			MergeProperty( typeLibrary, innerProperty, property.GetValue( target ), value );
+		}
+	}
+
 	private static void MergeDictionary( TypeLibrary typeLibrary, IDictionary targetDict, IDictionary mergerDict )
 	{
 		if ( mergerDict.Count == 0 )
@@ -239,42 +293,6 @@ internal static class TypeLibraryHelperExtensions
 			{
 				targetList.RemoveAt( j );
 			}
-		}
-	}
-
-	private static void MergeProperty( this TypeLibrary typeLibrary, PropertyDescription property, object target, object merger )
-	{
-		Assert.True( target is not null );
-
-		var mergerType = typeLibrary.GetType( merger.GetType() );
-		if ( mergerType.IsGenericType )
-			return;
-
-		var value = property.GetValue( merger );
-		if ( value is null )
-		{
-			property.SetValue( target, null );
-			return;
-		}
-
-		var targetValue = property.GetValue( target );
-		if ( targetValue is null )
-		{
-			property.SetValue( target, typeLibrary.CloneInternal( value ) );
-			return;
-		}
-
-		var propertyType = typeLibrary.GetType( value.GetType() );
-
-		if ( propertyType.IsValueType || propertyType.TargetType.IsAssignableTo( typeof(string) ) )
-		{
-			property.SetValue( target, property.GetValue( merger ) );
-			return;
-		}
-
-		foreach ( var innerProperty in propertyType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
-		{
-			MergeProperty( typeLibrary, innerProperty, property.GetValue( target ), value );
 		}
 	}
 
