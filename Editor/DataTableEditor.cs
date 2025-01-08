@@ -686,10 +686,6 @@ public class DataTableEditor : DockWindow
 		if ( InternalEntries.Count == 0 )
 			EntryCount = 0;
 
-		/*_dataTable.StructEntries.Clear();
-		foreach ( var pair in InternalEntries )
-			_dataTable.StructEntries.Add( pair.Key, pair.Value );*/
-
 		int i;
 		for ( i = _dataTable.StructEntries.Count - 1; i >= 0; i-- )
 		{
@@ -698,21 +694,6 @@ public class DataTableEditor : DockWindow
 			if ( otherRow is null )
 				_dataTable.StructEntries.RemoveAt( i );
 		}
-
-		/*foreach ( var pair in InternalEntries )
-		{
-			if ( _dataTable.StructEntries.ContainsKey( pair.Key ) )
-			{
-				Log.Info( "Merging" );
-				var entry = _dataTable.StructEntries[pair.Key];
-				TypeLibrary.Merge( entry, pair.Value );
-			}
-			else
-			{
-				Log.Info( "Cloning" );
-				_dataTable.StructEntries.Add( pair.Key, TypeLibrary.Clone<RowStruct>( pair.Value ) );
-			}
-		}*/
 
 		foreach ( var internalRow in InternalEntries )
 		{
