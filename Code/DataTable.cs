@@ -29,7 +29,7 @@ public class DataTable : GameResource
 		return (T)StructEntries.Find( x => x.RowName == rowName );
 	}
 
-	private void Fix()
+	internal void Fix()
 	{
 		var json = FileSystem.Mounted.ReadAllText( ResourcePath );
 		if ( json is null )

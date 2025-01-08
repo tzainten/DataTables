@@ -57,6 +57,7 @@ public class DataTableEditor : DockWindow
 			Close();
 			return;
 		}
+		_dataTable.Fix();
 
 		_structType = TypeLibrary.GetType( _dataTable.StructType );
 
