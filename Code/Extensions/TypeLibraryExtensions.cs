@@ -124,33 +124,45 @@ internal static class TypeLibraryHelperExtensions
 		if ( mergerType.IsGenericType )
 			return;
 
-		var value = field.GetValue( merger );
-		if ( value is null )
+		var mergerValue = field.GetValue( merger );
+		var targetValue = field.GetValue( target );
+
+		if ( mergerValue is null )
 		{
 			field.SetValue( target, null );
 			return;
 		}
 
-		var fieldType = typeLibrary.GetType( value.GetType() ); // @TODO: field.TypeDescription.IsValueType doesn't work here. Not sure if it should?
+		Type mergerValueType = mergerValue?.GetType();
+		Type targetValueType = targetValue?.GetType();
 
-		if ( fieldType.IsValueType || fieldType.TargetType.IsAssignableTo( typeof(string) ) ||
-		     value.GetType().IsAssignableTo( typeof(Resource) ) )
+		if ( mergerValueType != targetValueType )
 		{
-			field.SetValue( target, field.GetValue( merger ) );
+			object cloneObj = typeLibrary.CloneInternal( mergerValue );
+			if ( cloneObj.GetType().IsAssignableTo( field.FieldType ) )
+				field.SetValue( target, cloneObj );
 			return;
 		}
 
-		var targetValue = field.GetValue( target );
+		var fieldType = typeLibrary.GetType( mergerValueType );
+
+		if ( fieldType.IsValueType || mergerValueType.IsAssignableTo( typeof(string) ) ||
+		     mergerValueType.IsAssignableTo( typeof(Resource) ) )
+		{
+			field.SetValue( target, mergerValue );
+			return;
+		}
+
 		if ( targetValue is null )
 		{
-			field.SetValue( target, typeLibrary.CloneInternal( value ) );
+			field.SetValue( target, typeLibrary.CloneInternal( mergerValue ) );
 			return;
 		}
 
 		if ( fieldType.TargetType.IsAssignableTo( typeof(IList) ) )
 		{
 			IList targetList = (IList)targetValue;
-			IList mergerList = (IList)value;
+			IList mergerList = (IList)mergerValue;
 
 			MergeList( typeLibrary, targetList, mergerList );
 			return;
@@ -159,7 +171,7 @@ internal static class TypeLibraryHelperExtensions
 		if ( fieldType.TargetType.IsAssignableTo( typeof(IDictionary) ) )
 		{
 			IDictionary targetDict = (IDictionary)targetValue;
-			IDictionary mergerDict = (IDictionary)value;
+			IDictionary mergerDict = (IDictionary)mergerValue;
 
 			MergeDictionary( typeLibrary, targetDict, mergerDict );
 			return;
@@ -167,7 +179,7 @@ internal static class TypeLibraryHelperExtensions
 
 		foreach ( var innerField in fieldType.Fields.Where( x => x.IsPublic && !x.IsStatic ) )
 		{
-			MergeField( typeLibrary, innerField, field.GetValue( target ), value );
+			MergeField( typeLibrary, innerField, field.GetValue( target ), mergerValue );
 		}
 	}
 
@@ -194,8 +206,8 @@ internal static class TypeLibraryHelperExtensions
 			return;
 		}
 
-		Type mergerValueType = mergerValue.GetType();
-		Type targetValueType = targetValue.GetType();
+		Type mergerValueType = mergerValue?.GetType();
+		Type targetValueType = targetValue?.GetType();
 
 		if ( mergerValueType != targetValueType )
 		{
@@ -250,11 +262,20 @@ internal static class TypeLibraryHelperExtensions
 			targetDict.Clear();
 		else
 		{
+			Type targetKeyArg = typeLibrary.GetGenericArguments( targetDict.GetType() )[0];
+			Type targetValueArg = typeLibrary.GetGenericArguments( targetDict.GetType() )[1];
+			Type mergerKeyArg = typeLibrary.GetGenericArguments( mergerDict.GetType() )[0];
+			Type mergerValueArg = typeLibrary.GetGenericArguments( mergerDict.GetType() )[1];
+
+			bool canMerge = mergerKeyArg == targetKeyArg && mergerValueArg == targetValueArg;
+			if ( !canMerge )
+				targetDict.Clear();
+
 			foreach ( var key in mergerDict.Keys )
 			{
 				var value = mergerDict[key];
 
-				if ( !targetDict.Contains( key ) )
+				if ( !targetDict.Contains( key ) || !canMerge )
 				{
 					if ( value is not null )
 						targetDict.Add( key, typeLibrary.CloneInternal( value ) );
