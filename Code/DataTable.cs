@@ -42,11 +42,9 @@ public class DataTable : GameResource
 
 		if ( jobj.ContainsKey( "StructEntries" ) )
 		{
-			//Json._currentProperty = null;
 			List<RowStruct> structEntries =
 				(List<RowStruct>)Json.DeserializeList( jobj["StructEntries"].AsArray(),
 					typeof(List<RowStruct>) );
-			//Json._currentProperty = null;
 
 			if ( StructEntries.Count == 0 )
 				StructEntries = structEntries;
@@ -86,9 +84,7 @@ public class DataTable : GameResource
 		if ( StructEntries.Count > 0 )
 		{
 			JsonArray jarray = new();
-			//Json._currentProperty = null;
 			jarray = Json.SerializeList( StructEntries, true );
-			//Json._currentProperty = null;
 
 			node["StructEntries"] = jarray;
 		}
