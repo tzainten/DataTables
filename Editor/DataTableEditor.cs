@@ -102,6 +102,7 @@ public class DataTableEditor : DockWindow
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
 			//PopulateEditor();
+			_sheet.Clear( true );
 			UpdateViewAndEditor();
 
 			EditorState undoState = op.UndoEditorState;
@@ -129,6 +130,7 @@ public class DataTableEditor : DockWindow
 			_previousJson = SerializeEntries();
 			MarkUnsaved();
 			//PopulateEditor();
+			_sheet.Clear( true );
 			UpdateViewAndEditor();
 
 			EditorState redoState = op.RedoEditorState;
