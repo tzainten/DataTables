@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Sandbox;
 using Sandbox.Diagnostics;
 using Sandbox.Internal;
@@ -113,6 +114,12 @@ internal static class TypeLibraryHelperExtensions
 	{
 		Assert.True( target is not null && merger is not null );
 
+		var hasIgnore = field.HasAttribute<JsonIgnoreAttribute>();
+		var hasHide = field.HasAttribute<HideAttribute>();
+
+		if ( hasIgnore || hasHide )
+			return;
+
 		var mergerType = typeLibrary.GetType( merger.GetType() );
 		if ( mergerType.IsGenericType )
 			return;
@@ -167,6 +174,12 @@ internal static class TypeLibraryHelperExtensions
 	private static void MergeProperty( this TypeLibrary typeLibrary, PropertyDescription property, object target, object merger )
 	{
 		Assert.True( target is not null && merger is not null );
+
+		var hasIgnore = property.HasAttribute<JsonIgnoreAttribute>();
+		var hasHide = property.HasAttribute<HideAttribute>();
+
+		if ( hasIgnore || hasHide )
+			return;
 
 		var mergerType = typeLibrary.GetType( merger.GetType() );
 		if ( mergerType.IsGenericType )
