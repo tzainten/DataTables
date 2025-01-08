@@ -31,7 +31,11 @@ public class DataTable : GameResource
 
 	private void Fix()
 	{
-		Utf8JsonReader reader = new(Encoding.UTF8.GetBytes( FileSystem.Mounted.ReadAllText( ResourcePath ) ?? "" ),
+		var json = FileSystem.Mounted.ReadAllText( ResourcePath );
+		if ( json is null )
+			return;
+
+		Utf8JsonReader reader = new(Encoding.UTF8.GetBytes( json ),
 			new()
 			{
 				AllowTrailingCommas = false,
