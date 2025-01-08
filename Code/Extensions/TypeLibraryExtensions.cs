@@ -185,34 +185,45 @@ internal static class TypeLibraryHelperExtensions
 		if ( mergerType.IsGenericType )
 			return;
 
-		var value = property.GetValue( merger );
-		if ( value is null )
+		var mergerValue = property.GetValue( merger );
+		var targetValue = property.GetValue( target );
+
+		if ( mergerValue is null )
 		{
 			property.SetValue( target, null );
 			return;
 		}
 
-		var propertyType = typeLibrary.GetType( value.GetType() );
-		var propertyTargetType = propertyType.TargetType;
+		Type mergerValueType = mergerValue.GetType();
+		Type targetValueType = targetValue.GetType();
 
-		if ( propertyType.IsValueType || propertyTargetType.IsAssignableTo( typeof(string) ) ||
-		     propertyTargetType.IsAssignableTo( typeof(Resource) ) )
+		if ( mergerValueType != targetValueType )
 		{
-			property.SetValue( target, value );
+			object cloneObj = typeLibrary.CloneInternal( mergerValue );
+			if ( cloneObj.GetType().IsAssignableTo( property.PropertyType ) )
+				property.SetValue( target, cloneObj );
 			return;
 		}
 
-		var targetValue = property.GetValue( target );
+		var propertyType = typeLibrary.GetType( mergerValueType );
+
+		if ( propertyType.IsValueType || mergerValueType.IsAssignableTo( typeof(string) ) ||
+		     mergerValueType.IsAssignableTo( typeof(Resource) ) )
+		{
+			property.SetValue( target, mergerValue );
+			return;
+		}
+
 		if ( targetValue is null )
 		{
-			property.SetValue( target, typeLibrary.CloneInternal( value ) );
+			property.SetValue( target, typeLibrary.CloneInternal( mergerValue ) );
 			return;
 		}
 
 		if ( propertyType.TargetType.IsAssignableTo( typeof(IList) ) )
 		{
 			IList targetList = (IList)targetValue;
-			IList mergerList = (IList)value;
+			IList mergerList = (IList)mergerValue;
 
 			MergeList( typeLibrary, targetList, mergerList );
 			return;
@@ -221,7 +232,7 @@ internal static class TypeLibraryHelperExtensions
 		if ( propertyType.TargetType.IsAssignableTo( typeof(IDictionary) ) )
 		{
 			IDictionary targetDict = (IDictionary)targetValue;
-			IDictionary mergerDict = (IDictionary)value;
+			IDictionary mergerDict = (IDictionary)mergerValue;
 
 			MergeDictionary( typeLibrary, targetDict, mergerDict );
 			return;
@@ -229,7 +240,7 @@ internal static class TypeLibraryHelperExtensions
 
 		foreach ( var innerProperty in propertyType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
 		{
-			MergeProperty( typeLibrary, innerProperty, property.GetValue( target ), value );
+			MergeProperty( typeLibrary, innerProperty, property.GetValue( target ), mergerValue );
 		}
 	}
 
@@ -300,12 +311,24 @@ internal static class TypeLibraryHelperExtensions
 			targetList.Clear();
 		else
 		{
+			Type targetArg = typeLibrary.GetGenericArguments( targetList.GetType() ).First();
+			Type mergerArg = typeLibrary.GetGenericArguments( mergerList.GetType() ).First();
+
+			if ( !mergerArg.IsAssignableTo( targetArg ) )
+				return;
+
+			List<int> invalidIndices = new();
+
 			int i;
 			for ( i = 0; i < mergerList.Count; i++ )
 			{
 				if ( i > targetList.Count - 1 )
 				{
-					targetList.Add( typeLibrary.CloneInternal( mergerList[i] ) );
+					var typeA = targetList[i].GetType();
+					var typeB = mergerList[i].GetType();
+
+					if ( typeB.IsAssignableTo( typeA ) )
+						targetList.Add( typeLibrary.CloneInternal( mergerList[i] ) );
 				}
 				else
 				{
@@ -324,15 +347,18 @@ internal static class TypeLibraryHelperExtensions
 						{
 							if ( typeB == typeA )
 							{
+								Log.Info( "Merging!" );
 								Merge( typeLibrary, targetList[i], mergerList[i] );
 							}
 							else
 							{
+								Log.Info( "Cloning A!" );
 								targetList[i] = typeLibrary.CloneInternal( mergerList[i] );
 							}
 						}
 						else
 						{
+							Log.Info( "Cloning B!" );
 							targetList[i] = typeLibrary.CloneInternal( mergerList[i] );
 						}
 					}
