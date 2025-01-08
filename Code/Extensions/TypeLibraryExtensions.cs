@@ -314,21 +314,16 @@ internal static class TypeLibraryHelperExtensions
 			Type targetArg = typeLibrary.GetGenericArguments( targetList.GetType() ).First();
 			Type mergerArg = typeLibrary.GetGenericArguments( mergerList.GetType() ).First();
 
-			if ( !mergerArg.IsAssignableTo( targetArg ) )
-				return;
-
-			List<int> invalidIndices = new();
+			bool canMerge = mergerArg == targetArg;
+			if ( !canMerge )
+				targetList.Clear();
 
 			int i;
 			for ( i = 0; i < mergerList.Count; i++ )
 			{
-				if ( i > targetList.Count - 1 )
+				if ( i > targetList.Count - 1 || !canMerge )
 				{
-					var typeA = targetList[i].GetType();
-					var typeB = mergerList[i].GetType();
-
-					if ( typeB.IsAssignableTo( typeA ) )
-						targetList.Add( typeLibrary.CloneInternal( mergerList[i] ) );
+					targetList.Add( typeLibrary.CloneInternal( mergerList[i] ) );
 				}
 				else
 				{
@@ -347,18 +342,15 @@ internal static class TypeLibraryHelperExtensions
 						{
 							if ( typeB == typeA )
 							{
-								Log.Info( "Merging!" );
 								Merge( typeLibrary, targetList[i], mergerList[i] );
 							}
 							else
 							{
-								Log.Info( "Cloning A!" );
 								targetList[i] = typeLibrary.CloneInternal( mergerList[i] );
 							}
 						}
 						else
 						{
-							Log.Info( "Cloning B!" );
 							targetList[i] = typeLibrary.CloneInternal( mergerList[i] );
 						}
 					}
