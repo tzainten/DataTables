@@ -239,7 +239,6 @@ internal class TableHeader : Widget
 
 	public void AddColumn( Column column )
 	{
-		Log.Info( column );
 		if ( _splitter.IsValid() )
 			Labels.Add( _splitter.AddColumn( column ) );
 	}
