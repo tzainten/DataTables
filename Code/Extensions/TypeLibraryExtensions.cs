@@ -267,15 +267,20 @@ internal static class TypeLibraryHelperExtensions
 			Type mergerKeyArg = typeLibrary.GetGenericArguments( mergerDict.GetType() )[0];
 			Type mergerValueArg = typeLibrary.GetGenericArguments( mergerDict.GetType() )[1];
 
-			bool canMerge = mergerKeyArg == targetKeyArg && mergerValueArg == targetValueArg;
-			if ( !canMerge )
+			if ( mergerKeyArg != targetKeyArg || mergerValueArg != targetValueArg )
 				targetDict.Clear();
 
 			foreach ( var key in mergerDict.Keys )
 			{
 				var value = mergerDict[key];
 
-				if ( !targetDict.Contains( key ) || !canMerge )
+				bool isCorrectKeyType = key.GetType().IsAssignableTo( targetKeyArg );
+				bool isCorrectValueType = value.GetType().IsAssignableTo( targetValueArg );
+
+				if ( !isCorrectKeyType || !isCorrectValueType )
+					continue;
+
+				if ( !targetDict.Contains( key ) )
 				{
 					if ( value is not null )
 						targetDict.Add( key, typeLibrary.CloneInternal( value ) );
@@ -286,28 +291,22 @@ internal static class TypeLibraryHelperExtensions
 					var elemType = typeLibrary.GetType( elemTargetType );
 					if ( elemType.IsValueType )
 					{
-						targetDict[key] = value;
+						if ( value is not null )
+							targetDict[key] = value;
 					}
 					else
 					{
-						var typeA = targetDict[key].GetType();
-						var typeB = value.GetType();
+						var mergerValue = mergerDict[key];
+						var targetValue = targetDict[key];
 
-						if ( typeB.IsAssignableTo( typeA ) )
+						if ( mergerValue.GetType() == targetValue.GetType() )
 						{
-							if ( typeB == typeA )
-							{
-								Merge( typeLibrary, targetDict[key], value );
-							}
-							else
-							{
-								targetDict[key] = typeLibrary.CloneInternal( value );
-							}
+							Merge( typeLibrary, targetValue, mergerValue );
+							continue;
 						}
-						else
-						{
-							targetDict[key] = typeLibrary.CloneInternal( value );
-						}
+
+						if ( mergerValue.GetType().IsAssignableTo( targetValueArg ) )
+							targetDict[key] = typeLibrary.CloneInternal( mergerValue );
 					}
 				}
 			}
@@ -335,16 +334,17 @@ internal static class TypeLibraryHelperExtensions
 			Type targetArg = typeLibrary.GetGenericArguments( targetList.GetType() ).First();
 			Type mergerArg = typeLibrary.GetGenericArguments( mergerList.GetType() ).First();
 
-			bool canMerge = mergerArg == targetArg;
-			if ( !canMerge )
+			if ( mergerArg != targetArg )
 				targetList.Clear();
 
 			int i;
 			for ( i = 0; i < mergerList.Count; i++ )
 			{
-				if ( i > targetList.Count - 1 || !canMerge )
+				if ( i > targetList.Count - 1 )
 				{
-					targetList.Add( typeLibrary.CloneInternal( mergerList[i] ) );
+					var value = mergerList[i];
+					if ( value.GetType().IsAssignableTo( targetArg ) )
+						targetList.Add( typeLibrary.CloneInternal( value ) );
 				}
 				else
 				{
@@ -352,28 +352,23 @@ internal static class TypeLibraryHelperExtensions
 					var elemType = typeLibrary.GetType( elemTargetType );
 					if ( elemType.IsValueType )
 					{
-						targetList[i] = mergerList[i];
+						var value = mergerList[i];
+						if ( value.GetType().IsAssignableTo( targetArg ) )
+							targetList[i] = mergerList[i];
 					}
 					else
 					{
-						var typeA = targetList[i].GetType();
-						var typeB = mergerList[i].GetType();
+						var mergerValue = mergerList[i];
+						var targetValue = targetList[i];
 
-						if ( typeB.IsAssignableTo( typeA ) )
+						if ( mergerValue.GetType() == targetValue.GetType() )
 						{
-							if ( typeB == typeA )
-							{
-								Merge( typeLibrary, targetList[i], mergerList[i] );
-							}
-							else
-							{
-								targetList[i] = typeLibrary.CloneInternal( mergerList[i] );
-							}
+							Merge( typeLibrary, targetValue, mergerValue );
+							continue;
 						}
-						else
-						{
+
+						if ( mergerValue.GetType().IsAssignableTo( targetArg ) )
 							targetList[i] = typeLibrary.CloneInternal( mergerList[i] );
-						}
 					}
 				}
 			}
