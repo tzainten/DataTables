@@ -455,14 +455,79 @@ public class DataTableEditor : DockWindow
 	public void BuildMenuBar()
 	{
 		var file = MenuBar.AddMenu( "File" );
-		//file.AddOption( "New", "common/new.png", null, "editor.new" ).StatusTip = "New Graph";
-		file.AddOption( "Open", "common/open.png", Open, "editor.open" ).StatusTip = "Open Graph";
+		file.AddOption( "New", "common/new.png", New, "editor.new" ).StatusTip = "New Data Table";
+		file.AddOption( "Open", "common/open.png", Open, "editor.open" ).StatusTip = "Open Data Table";
 		file.AddOption( "Save", "common/save.png", Save, "editor.save" ).StatusTip = "Save Data Table";
 		file.AddOption( "Save As...", "common/save.png", SaveAs, "editor.save-as" ).StatusTip = "Save Data Table As...";
 		file.AddOption( "Quit", "common/icon_clear.png", Close, "editor.quit" ).StatusTip = "Quit";
 
 		var view = MenuBar.AddMenu( "View" );
 		view.AboutToShow += () => OnViewMenu( view );
+	}
+
+	[Shortcut( "editor.new", "CTRL+N", ShortcutType.Window )]
+	private void New()
+	{
+		var fd = new FileDialog( null )
+		{
+			Title = "New Data Table",
+			DefaultSuffix = $".dt",
+			Directory = Path.GetDirectoryName( _asset.AbsolutePath )
+		};
+
+		fd.SetNameFilter( "Data Table (*.dt)" );
+		fd.SetModeSave();
+
+		if ( !fd.Execute() )
+			return;
+
+		Action newFile = () =>
+		{
+			var jobj = new JsonObject();
+			jobj["StructType"] = _structType.FullName;
+			File.WriteAllText( fd.SelectedFile, jobj.ToJsonString() );
+			_asset = AssetSystem.RegisterFile( fd.SelectedFile );
+			if ( _asset == null )
+			{
+				Log.Warning( $"Unable to register asset {fd.SelectedFile}" );
+
+				return;
+			}
+
+			NewAsync( _asset.AbsolutePath );
+		};
+
+		if ( _isUnsaved )
+		{
+			CloseDialog dialog = new($"Data Table Editor - {_asset.Path}", () =>
+			{
+				Save();
+				newFile();
+			}, () =>
+			{
+				_isUnsaved = false;
+				if ( _dataTable.StructEntries.Count == 0 )
+					_dataTable.EntryCount = 0;
+				newFile();
+			});
+			return;
+		}
+
+		newFile();
+	}
+
+	private async void NewAsync( string path )
+	{
+		var asset = AssetSystem.RegisterFile( path );
+
+		while ( !asset.IsCompiledAndUpToDate )
+		{
+			await Task.Yield();
+		}
+
+		MainAssetBrowser.Instance?.UpdateAssetList();
+		DataTableEditor editor = new(_asset); // @TODO: When saving, don't open a new editor! Do what ShaderGraph instead
+		Close();
 	}
 
 	[Shortcut( "editor.open", "CTRL+O", ShortcutType.Window )]
