@@ -18,11 +18,13 @@ public class EditorState
 {
 	public List<string> SelectedNames;
 	public string SheetRowName;
+	public int EntryCount;
 
-	public EditorState( List<string> names, string rowName )
+	public EditorState( List<string> names, string rowName, int entryCount )
 	{
 		SelectedNames = names;
 		SheetRowName = rowName;
+		EntryCount = entryCount;
 	}
 }
 

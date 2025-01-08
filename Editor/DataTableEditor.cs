@@ -82,7 +82,7 @@ public class DataTableEditor : DockWindow
 		Show();
 		PopulateEditor();
 
-		_previousEditorState = new EditorState(GetSelectedNames(), _sheetRowName);
+		_previousEditorState = new EditorState(GetSelectedNames(), _sheetRowName, EntryCount);
 	}
 
 	private string SerializeEntries()
@@ -104,6 +104,7 @@ public class DataTableEditor : DockWindow
 			UpdateViewAndEditor();
 
 			EditorState undoState = op.UndoEditorState;
+			EntryCount = undoState.EntryCount;
 			_tableView.ListView.Selection.Clear();
 			foreach ( var rowName in undoState.SelectedNames )
 			{
@@ -130,6 +131,7 @@ public class DataTableEditor : DockWindow
 			UpdateViewAndEditor();
 
 			EditorState redoState = op.RedoEditorState;
+			EntryCount = redoState.EntryCount;
 			_tableView.ListView.Selection.Clear();
 			foreach ( var rowName in redoState.SelectedNames )
 			{
@@ -203,7 +205,7 @@ public class DataTableEditor : DockWindow
 			string json = SerializeEntries();
 			if ( json != _previousJson )
 			{
-				EditorState state = new(GetSelectedNames(), _sheetRowName);
+				EditorState state = new(GetSelectedNames(), _sheetRowName, EntryCount);
 
 				_undoStack.PushUndo("Modified a RowStruct", _previousJson, _previousEditorState );
 				OnUndoPushed();
@@ -481,6 +483,7 @@ public class DataTableEditor : DockWindow
 		if ( !fd.Execute() )
 			return;
 
+		//
 		Action newFile = () =>
 		{
 			var jobj = new JsonObject();
@@ -676,7 +679,7 @@ public class DataTableEditor : DockWindow
 		_sheet.Clear( true );
 
 		_previousJson = SerializeEntries();
-		_previousEditorState = new(GetSelectedNames(), _sheetRowName);
+		_previousEditorState = new(GetSelectedNames(), _sheetRowName, EntryCount);
 
 		int index = -1;
 		foreach ( RowStruct row in _tableView.ListView.Selection )
@@ -700,7 +703,7 @@ public class DataTableEditor : DockWindow
 			PopulateControlSheet( InternalEntries[index] );
 		}
 
-		EditorState state = new(GetSelectedNames(), _sheetRowName);
+		EditorState state = new(GetSelectedNames(), _sheetRowName, EntryCount);
 
 		var json = SerializeEntries();
 		_undoStack.PushUndo( $"Remove Row(s)", _previousJson, _previousEditorState );
@@ -715,7 +718,7 @@ public class DataTableEditor : DockWindow
 	{
 		_previousJson = SerializeEntries();
 
-		_previousEditorState = new(GetSelectedNames(), _sheetRowName);
+		_previousEditorState = new(GetSelectedNames(), _sheetRowName, EntryCount);
 
 		var o = TypeLibrary.Create<RowStruct>( _dataTable.StructType );
 		o.RowName = $"NewEntry_{EntryCount++}";
@@ -731,7 +734,7 @@ public class DataTableEditor : DockWindow
 
 		_tableView.ListView.ScrollTo( o );
 
-		EditorState state = new(GetSelectedNames(), _sheetRowName);
+		EditorState state = new(GetSelectedNames(), _sheetRowName, EntryCount);
 
 		var json = SerializeEntries();
 		_undoStack.PushUndo( $"Add Entry {o.RowName}", _previousJson, _previousEditorState );
