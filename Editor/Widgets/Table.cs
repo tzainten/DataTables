@@ -16,43 +16,6 @@ namespace DataTablesEditor;
 /// </summary>
 internal class TableView : Widget
 {
-	public class Column
-	{
-		private string _name;
-		public string Name
-		{
-			get
-			{
-				return _name;
-			}
-			set
-			{
-				if ( value is null )
-					_name = null;
-				else
-				{
-					StringBuilder result = new StringBuilder();
-					result.Append( value[0] );
-
-					for (int i = 1; i < value.Length; i++)
-					{
-						if ( char.IsUpper( value[i] ) && !char.IsUpper( value[i - 1] ) )
-							result.Append( ' ' );
-
-						result.Append( value[i] );
-					}
-
-					_name = result.ToString();
-				}
-			}
-		}
-		public int Width;
-		public Func<object, string> Value;
-		public TextFlag TextFlag = TextFlag.Left;
-		public Label Label;
-		public Color TextColor = Theme.ControlText;
-	}
-
 	public ListView ListView { get; set; }
 
 	public List<Column> Columns { get; set; } = new();
@@ -176,100 +139,140 @@ internal class TableView : Widget
 		Paint.SetBrush( Theme.WindowBackground );
 		Paint.DrawRect( LocalRect.Shrink( 0, 0, 0, LocalRect.Height - 30 ) );
 	}
+}
 
-	class TableHeader : Widget
+internal class Column
+{
+	private string _name;
+	public string Name
 	{
-		readonly TableView Table;
-
-		public List<Label> Labels = new();
-
-		public HeaderSplitter _splitter;
-
-		private static List<TableHeader> _headers;
-
-		static TableHeader()
+		get
 		{
-			_headers = new();
+			return _name;
 		}
-
-		[EditorEvent.Frame]
-		public static void Frame()
+		set
 		{
-			foreach ( var Header in _headers )
+			if ( value is null )
+				_name = null;
+			else
 			{
-				if ( Header is null || !Header.IsValid )
-					continue;
+				StringBuilder result = new StringBuilder();
+				result.Append( value[0] );
 
-				var list = Header._splitter.Labels;
-				for ( int i = 0; i < list.Count; i++ )
+				for (int i = 1; i < value.Length; i++)
 				{
-					var lbl = list[i];
-					Header.Table.Columns[i].Width = (int)lbl.Width;
+					if ( char.IsUpper( value[i] ) && !char.IsUpper( value[i - 1] ) )
+						result.Append( ' ' );
 
-					var _ = new Widget();
-					Header.Table.ListView.AddItem( _ );
-					Header.Table.ListView.RemoveItem( _ );
+					result.Append( value[i] );
 				}
+
+				_name = result.ToString();
 			}
 		}
+	}
+	public int Width;
+	public Func<object, string> Value;
+	public TextFlag TextFlag = TextFlag.Left;
+	public Label Label;
+	public Color TextColor = Theme.ControlText;
+}
 
-		public TableHeader( TableView parent ) : base( parent )
+internal class TableHeader : Widget
+{
+	readonly TableView Table;
+
+	public List<Label> Labels = new();
+
+	public HeaderSplitter _splitter;
+
+	private static List<TableHeader> _headers;
+
+	static TableHeader()
+	{
+		_headers = new();
+	}
+
+	[EditorEvent.Frame]
+	public static void Frame()
+	{
+		foreach ( var Header in _headers )
 		{
-			Table = parent;
-			MinimumHeight = 25;
+			if ( Header is null || !Header.IsValid )
+				continue;
 
-			Layout = Layout.Row();
+			var list = Header._splitter.Labels;
+			for ( int i = 0; i < list.Count; i++ )
+			{
+				var lbl = list[i];
+				Header.Table.Columns[i].Width = (int)lbl.Width;
 
-			_splitter = new(this);
-			_splitter.IsHorizontal = true;
-
-			_headers.Add( this );
-
-			Layout.Add( _splitter );
-		}
-
-		public override void Close()
-		{
-			base.Close();
-
-			_headers.Remove( this );
-		}
-
-		public void AddColumn( Column column )
-		{
-			Labels.Add( _splitter.AddColumn( column ) );
+				var _ = new Widget();
+				Header.Table.ListView.AddItem( _ );
+				Header.Table.ListView.RemoveItem( _ );
+				_.Destroy();
+			}
 		}
 	}
 
-	public class HeaderSplitter : Splitter
+	public TableHeader( TableView parent ) : base( parent )
 	{
-		public List<Label> Labels = new();
+		Table = parent;
+		MinimumHeight = 25;
 
-		public HeaderSplitter(Widget parent) : base(parent)
+		Layout = Layout.Row();
+
+		_splitter = new(this);
+		_splitter.IsHorizontal = true;
+
+		_headers.Add( this );
+
+		Layout.Add( _splitter );
+	}
+
+	public override void Close()
+	{
+		base.Close();
+
+		_headers.Remove( this );
+	}
+
+	public void AddColumn( Column column )
+	{
+		Log.Info( column );
+		if ( _splitter.IsValid() )
+			Labels.Add( _splitter.AddColumn( column ) );
+	}
+}
+
+internal class HeaderSplitter : Splitter
+{
+	public List<Label> Labels = new();
+
+	public HeaderSplitter(Widget parent) : base(parent)
+	{
+	}
+
+	private int splitterCount = 0;
+	public Label AddColumn( Column column )
+	{
+		var lbl = new Label( column.Name );
+		lbl.ContentMargins = new Margin( 8, 0, 0, 0 );
+		lbl.SetStyles( "font-weight: bold; font-size: 12px;" );
+		lbl.OnPaintOverride = () =>
 		{
-		}
+			Paint.SetBrush( ControlWidget.ControlColor );
+			Paint.SetPen( Color.Transparent );
+			Paint.DrawRect( lbl.LocalRect );
 
-		private int splitterCount = 0;
-		public Label AddColumn( Column column )
-		{
-			var lbl = new Label( column.Name );
-			lbl.ContentMargins = new Margin( 8, 0, 0, 0 );
-			lbl.SetStyles( "font-weight: bold; font-size: 12px;" );
-			lbl.OnPaintOverride = () =>
-			{
-				Paint.SetBrush( ControlWidget.ControlColor );
-				Paint.SetPen( Color.Transparent );
-				Paint.DrawRect( lbl.LocalRect );
+			return false;
+		};
+		column.Label = lbl;
+		Labels.Add( lbl );
 
-				return false;
-			};
-			column.Label = lbl;
-			Labels.Add( lbl );
+		AddWidget( lbl );
+		SetCollapsible( splitterCount++, false );
 
-			AddWidget( lbl );
-			SetCollapsible( splitterCount++, false );
-
-			return lbl;
-		}
+		return lbl;
 	}
 }
