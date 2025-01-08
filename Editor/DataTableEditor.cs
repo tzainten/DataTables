@@ -1,16 +1,19 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 using DataTables;
 using Editor;
 using Sandbox;
 using Sandbox.Diagnostics;
 using Sandbox.Helpers;
 using Application = Editor.Application;
+using FileSystem = Editor.FileSystem;
 using Json = DataTables.Json;
 
 namespace DataTablesEditor;
@@ -44,11 +47,19 @@ public class DataTableEditor : DockWindow
 	private UndoStack _undoStack = new();
 	private UndoHistory _undoHistory;
 
-	public DataTableEditor( Asset asset, DataTable dataTable )
+	public DataTableEditor( Asset asset )
 	{
 		_asset = asset;
-		_dataTable = dataTable;
-		_structType = TypeLibrary.GetType( dataTable.StructType );
+		_dataTable = _asset.LoadResource<DataTable>();
+
+		if ( _dataTable is null )
+		{
+			Log.Info( _asset );
+			Close();
+			return;
+		}
+
+		_structType = TypeLibrary.GetType( _dataTable.StructType );
 
 		_previousProperties = _structType.Properties.ToArray();
 
@@ -167,6 +178,9 @@ public class DataTableEditor : DockWindow
 	[EditorEvent.Frame]
 	private void Tick()
 	{
+		if ( !Visible )
+			return;
+
 		_undoHistory.UndoLevel = _undoStack.UndoLevel;
 
 		Title = EvaluateTitle();
@@ -444,6 +458,7 @@ public class DataTableEditor : DockWindow
 		//file.AddOption( "New", "common/new.png", null, "editor.new" ).StatusTip = "New Graph";
 		//file.AddOption( "Open", "common/open.png", null, "editor.open" ).StatusTip = "Open Graph";
 		file.AddOption( "Save", "common/save.png", Save, "editor.save" ).StatusTip = "Save Data Table";
+		file.AddOption( "Save As...", "common/save.png", SaveAs, "editor.save-as" ).StatusTip = "Save Data Table As...";
 
 		var view = MenuBar.AddMenu( "View" );
 		view.AboutToShow += () => OnViewMenu( view );
@@ -715,6 +730,69 @@ public class DataTableEditor : DockWindow
 		_asset.SaveToDisk( _dataTable );
 
 		EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
+	}
+
+	[Shortcut("editor.save-as", "CTRL+SHIFT+S", ShortcutType.Window)]
+	private void SaveAs()
+	{
+		var fd = new FileDialog( null )
+		{
+			Title = "Save Data Table",
+			DefaultSuffix = $".dt",
+			Directory = Path.GetDirectoryName( _asset.AbsolutePath )
+		};
+
+		fd.SetNameFilter( "Data Table (*.dt)" );
+		fd.SetModeSave();
+
+		if ( !fd.Execute() )
+			return;
+
+		Action saveAs = () =>
+		{
+			File.WriteAllText( fd.SelectedFile, _dataTable.Serialize().ToJsonString() );
+			_asset = AssetSystem.RegisterFile( fd.SelectedFile );
+			if ( _asset == null )
+			{
+				Log.Warning( $"Unable to register asset {fd.SelectedFile}" );
+
+				return;
+			}
+
+			SaveAsAsync( _asset.AbsolutePath );
+		};
+
+		if ( _isUnsaved )
+		{
+			CloseDialog dialog = new($"Data Table Editor - {_asset.Path}", () =>
+			{
+				Save();
+				saveAs();
+			}, () =>
+			{
+				_isUnsaved = false;
+				if ( _dataTable.StructEntries.Count == 0 )
+					_dataTable.EntryCount = 0;
+				saveAs();
+			});
+			return;
+		}
+
+		saveAs();
+	}
+
+	private async void SaveAsAsync( string path )
+	{
+		var asset = AssetSystem.RegisterFile( path );
+
+		while ( !asset.IsCompiledAndUpToDate )
+		{
+			await Task.Yield();
+		}
+
+		MainAssetBrowser.Instance?.UpdateAssetList();
+		DataTableEditor editor = new(_asset); // @TODO: When saving, don't open a new editor! Do what ShaderGraph instead
+		Close();
 	}
 
 	protected override bool OnClose()

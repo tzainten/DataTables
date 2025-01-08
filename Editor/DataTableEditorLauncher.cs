@@ -108,7 +108,7 @@ public class DataTableEditorLauncher : BaseWindow, IAssetEditor
 
 	private void OpenEditor()
 	{
-		DataTableEditor editor = new(_asset, _dataTable);
+		DataTableEditor editor = new(_asset);
 		if ( !OpenAssetEditors.ContainsKey( _asset.Path.FastHash() ) )
 			OpenAssetEditors.Add( _asset.Path.FastHash(), editor );
 
