@@ -178,16 +178,43 @@ internal static class Json
 			var pair = enumerator.Current;
 
 			Type[] genericArgs = TypeLibrary.GetGenericArguments( type );
+			var keyType = genericArgs[0];
 
 			var key = pair.Key;
+			object parsedKey = key;
+			if ( keyType == typeof(int) )
+			{
+				if ( int.TryParse( key, out int num ) )
+					parsedKey = num;
+			}
+			else if ( keyType == typeof(double) )
+			{
+				if ( double.TryParse( key, out double num ) )
+					parsedKey = num;
+			}
+			else if ( keyType == typeof(float) )
+			{
+				if ( float.TryParse( key, out float num ) )
+					parsedKey = num;
+			}
+
 			var node = pair.Value;
 
 			var elem = DeserializeInternal( node, genericArgs[1] );
 			if ( elem is null )
 				continue;
 
+			Type keyArg = TypeLibrary.GetGenericArguments( type )[0];
+			Type valueArg = TypeLibrary.GetGenericArguments( type )[1];
+
+			bool isCorrectKeyType = parsedKey.GetType().IsAssignableTo( keyArg );
+			bool isCorrectValueType = elem.GetType().IsAssignableTo( valueArg );
+
+			if ( !isCorrectKeyType || !isCorrectValueType )
+				continue;
+
 			if ( elem.GetType().IsAssignableTo( genericArgs[1] ) )
-				dict.Add( key, elem );
+				dict.Add( parsedKey, elem );
 		}
 
 		return dict;
