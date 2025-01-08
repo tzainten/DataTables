@@ -459,6 +459,7 @@ public class DataTableEditor : DockWindow
 		//file.AddOption( "Open", "common/open.png", null, "editor.open" ).StatusTip = "Open Graph";
 		file.AddOption( "Save", "common/save.png", Save, "editor.save" ).StatusTip = "Save Data Table";
 		file.AddOption( "Save As...", "common/save.png", SaveAs, "editor.save-as" ).StatusTip = "Save Data Table As...";
+		file.AddOption( "Quit", "common/icon_clear.png", Close, "editor.quit" ).StatusTip = "Quit";
 
 		var view = MenuBar.AddMenu( "View" );
 		view.AboutToShow += () => OnViewMenu( view );
