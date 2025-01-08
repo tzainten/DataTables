@@ -814,8 +814,10 @@ public class DataTableEditor : DockWindow
 				_dataTable.StructEntries.RemoveAt( i );
 		}
 
-		foreach ( var internalRow in InternalEntries )
+		List<int> insertIndices = new();
+		for ( i = 0; i < InternalEntries.Count; i++ )
 		{
+			var internalRow = InternalEntries[i];
 			var row = _dataTable.StructEntries.Find( x => x.RowName == internalRow.RowName );
 			if ( row is not null )
 			{
@@ -823,8 +825,13 @@ public class DataTableEditor : DockWindow
 			}
 			else
 			{
-				_dataTable.StructEntries.Add( TypeLibrary.Clone<RowStruct>( internalRow ) );
+				insertIndices.Add( i );
 			}
+		}
+
+		foreach ( var index in insertIndices )
+		{
+			_dataTable.StructEntries.Insert( index, TypeLibrary.Clone<RowStruct>( InternalEntries[index] ) );
 		}
 
 		_lastSaveJson = SerializeEntries();
