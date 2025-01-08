@@ -47,4 +47,6 @@ public class ExampleRowStruct : RowStruct
 
 	[JsonTypeAnnotate]
 	public Something Something { get; set; }
+
+	public Dictionary<string, int> Dictionary { get; set; }
 }
