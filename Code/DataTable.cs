@@ -19,7 +19,7 @@ public class DataTable : GameResource
 {
 	[Hide] public string StructType { get; set; }
 
-	public List<RowStruct> StructEntries = new();
+	[Hide] public List<RowStruct> StructEntries = new();
 
 	[Hide] public int EntryCount { get; set; } = 0;
 
@@ -31,7 +31,7 @@ public class DataTable : GameResource
 
 	private void Fix()
 	{
-		Utf8JsonReader reader = new(Encoding.UTF8.GetBytes( FileSystem.Mounted.ReadAllText( ResourcePath ) ),
+		Utf8JsonReader reader = new(Encoding.UTF8.GetBytes( FileSystem.Mounted.ReadAllText( ResourcePath ) ?? "" ),
 			new()
 			{
 				AllowTrailingCommas = false,
