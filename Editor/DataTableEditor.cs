@@ -455,11 +455,11 @@ public class DataTableEditor : DockWindow
 	public void BuildMenuBar()
 	{
 		var file = MenuBar.AddMenu( "File" );
-		file.AddOption( "New", "common/new.png", New, "editor.new" ).StatusTip = "New Data Table";
-		file.AddOption( "Open", "common/open.png", Open, "editor.open" ).StatusTip = "Open Data Table";
-		file.AddOption( "Save", "common/save.png", Save, "editor.save" ).StatusTip = "Save Data Table";
-		file.AddOption( "Save As...", "common/save.png", SaveAs, "editor.save-as" ).StatusTip = "Save Data Table As...";
-		file.AddOption( "Quit", "common/icon_clear.png", Close, "editor.quit" ).StatusTip = "Quit";
+		file.AddOption( "New", "note_add", New, "editor.new" ).StatusTip = "New Data Table";
+		file.AddOption( "Open", "file_open", Open, "editor.open" ).StatusTip = "Open Data Table";
+		file.AddOption( "Save", "save", Save, "editor.save" ).StatusTip = "Save Data Table";
+		file.AddOption( "Save As...", "save_as", SaveAs, "editor.save-as" ).StatusTip = "Save Data Table As...";
+		file.AddOption( "Quit", "logout", Close, "editor.quit" ).StatusTip = "Quit";
 
 		var view = MenuBar.AddMenu( "View" );
 		view.AboutToShow += () => OnViewMenu( view );
