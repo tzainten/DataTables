@@ -613,14 +613,15 @@ public class DataTableEditor : DockWindow
 		AddToolBar( _toolBar, ToolbarPosition.Top );
 
 		_toolBar.Movable = false;
-		_toolBar.AddOption( "Save", "common/save.png", Save ).StatusTip = "Saves this Data Table to disk";
-		_toolBar.AddOption( "Browse", "common/browse.png" ).StatusTip = "Filler";
+		_toolBar.AddOption( "Save", "save", Save ).StatusTip = "Save Data Table";
+		_toolBar.AddOption( "Save As...", "save_as", SaveAs ).StatusTip = "Save Data Table as";
+		//_toolBar.AddOption( "Browse", "common/browse.png" ).StatusTip = "Filler";
 		_toolBar.AddSeparator();
-		_addOption = _toolBar.AddOption( "Add", "common/add.png", AddEntry );
+		_addOption = _toolBar.AddOption( "Add", "add", AddEntry );
 		_addOption.StatusTip = "Append a new entry";
-		_duplicateOption = _toolBar.AddOption( "Duplicate", "common/copy.png", DuplicateEntry );
+		_duplicateOption = _toolBar.AddOption( "Duplicate", "content_copy", DuplicateEntry );
 		_duplicateOption.StatusTip = "Appends a duplicate of the currently selected entry";
-		_deleteOption = _toolBar.AddOption( "Delete", "common/remove.png", RemoveEntry );
+		_deleteOption = _toolBar.AddOption( "Delete", "delete_outline", RemoveEntry );
 		_deleteOption.StatusTip = "Delete the currently selected entry";
 
 		/*var stretch = new Widget();
