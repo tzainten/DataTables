@@ -190,7 +190,7 @@ internal static class TypeLibraryHelperExtensions
 		var hasIgnore = property.HasAttribute<JsonIgnoreAttribute>();
 		var hasHide = property.HasAttribute<HideAttribute>();
 
-		if ( hasIgnore || hasHide )
+		if ( hasIgnore || hasHide || !property.CanRead || !property.CanWrite )
 			return;
 
 		var mergerType = typeLibrary.GetType( merger.GetType() );

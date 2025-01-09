@@ -104,10 +104,8 @@ internal static class Json
 		foreach ( var property in typeDesc.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
 		{
 			var hasIgnore = property.HasAttribute<JsonIgnoreAttribute>();
-			var hasInclude = property.HasAttribute<JsonIncludeAttribute>();
-			var hasProperty = property.HasAttribute<PropertyAttribute>();
 
-			if ( !hasIgnore && (property.IsGetMethodPublic || hasInclude || hasProperty) )
+			if ( !hasIgnore && property.CanRead && property.CanWrite )
 			{
 				var value = property.GetValue( target );
 				if ( value is null )
