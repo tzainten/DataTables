@@ -10,7 +10,7 @@ using Sandbox.Diagnostics;
 
 namespace DataTables;
 
-[AttributeUsage(AttributeTargets.Property)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class JsonTypeAnnotateAttribute : Attribute
 {
 }
