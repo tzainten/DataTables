@@ -47,6 +47,19 @@ internal static class Json
 	{
 		JsonObject jdict = new();
 
+		Type keyArg = TypeLibrary.GetGenericArguments( target.GetType() )[0];
+
+		bool isInteger = keyArg == typeof(int);
+		bool isString = keyArg == typeof(string);
+		bool isReal = keyArg == typeof(float) || keyArg == typeof(double);
+
+		if ( !(isInteger || isString || isReal) )
+		{
+			Log.Error(
+				$"The type '{keyArg.FullName}' is not a supported dictionary key! If you really need this to be supported, please submit an issue @ https://github.com/tzainten/DataTables" );
+			return jdict;
+		}
+
 		foreach ( var key in target.Keys )
 		{
 			if ( key is null )
