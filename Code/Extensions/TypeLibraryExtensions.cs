@@ -91,13 +91,22 @@ internal static class TypeLibraryHelperExtensions
 		return instance;
 	}
 
-	public static void Merge<T>( this TypeLibrary typeLibrary, T target, T merger ) where T : class
+	public static T Merge<T>( this TypeLibrary typeLibrary, T target, T merger ) where T : class
 	{
 		Assert.True( target is not null );
 		Assert.True( merger is not null );
 
 		var targetType = target.GetType();
 		TypeDescription type = typeLibrary.GetType( targetType );
+
+		var mergerType = merger.GetType();
+		TypeDescription mergerTypeDesc = typeLibrary.GetType( targetType );
+
+		if ( mergerTypeDesc.IsValueType || mergerType.IsAssignableTo( typeof(string) ) ||
+		     mergerType.IsAssignableTo( typeof(Resource) ) )
+		{
+			return merger;
+		}
 
 		foreach ( var field in type.Fields.Where( x => x.IsPublic && !x.IsStatic ) )
 		{
@@ -108,6 +117,8 @@ internal static class TypeLibraryHelperExtensions
 		{
 			MergeProperty( typeLibrary, property, target, merger );
 		}
+
+		return target;
 	}
 
 	private static void MergeField( TypeLibrary typeLibrary, FieldDescription field, object target, object merger )
@@ -301,7 +312,7 @@ internal static class TypeLibraryHelperExtensions
 
 						if ( mergerValue.GetType() == targetValue.GetType() )
 						{
-							Merge( typeLibrary, targetValue, mergerValue );
+							targetDict[key] = Merge( typeLibrary, targetValue, mergerValue );
 							continue;
 						}
 
@@ -363,7 +374,7 @@ internal static class TypeLibraryHelperExtensions
 
 						if ( mergerValue.GetType() == targetValue.GetType() )
 						{
-							Merge( typeLibrary, targetValue, mergerValue );
+							targetList[i] = Merge( typeLibrary, targetValue, mergerValue );
 							continue;
 						}
 
