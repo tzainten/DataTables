@@ -8,8 +8,8 @@ using Json = Sandbox.Json;
 
 namespace DataTablesEditor;
 
-[CustomEditor( typeof(List<>), WithAllAttributes = new[] { typeof(JsonTypeAnnotateAttribute) } )]
-[CustomEditor( typeof(System.Array), WithAllAttributes = new[] { typeof(JsonTypeAnnotateAttribute) } )]
+[CustomEditor( typeof(List<>), WithAllAttributes = new[] { typeof(InstancedAttribute) } )]
+[CustomEditor( typeof(System.Array), WithAllAttributes = new[] { typeof(InstancedAttribute) } )]
 public class InstancedListControlWidget : ControlWidget
 {
 	public override bool SupportsMultiEdit => false;

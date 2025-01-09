@@ -6,7 +6,7 @@ using Sandbox;
 
 namespace DataTablesEditor;
 
-[CustomEditor( typeof(object), WithAllAttributes = new[] { typeof(JsonTypeAnnotateAttribute) } )]
+[CustomEditor( typeof(object), WithAllAttributes = new[] { typeof(InstancedAttribute) } )]
 public class InstancedControlWidget : ControlWidget
 {
 	public InstancedControlWidget( SerializedProperty property ) : base( property )

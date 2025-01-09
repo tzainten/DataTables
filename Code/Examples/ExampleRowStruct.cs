@@ -28,7 +28,7 @@ public class ExampleRowStruct : RowStruct
 	[ImageAssetPath]
 	public string ImagePath { get; set; }
 
-	[JsonTypeAnnotate]
+	[JsonTypeAnnotate, Instanced]
 	public List<Something> Somethings { get; set; }
 
 	public Transform Transform { get; set; }
@@ -45,7 +45,7 @@ public class ExampleRowStruct : RowStruct
 
 	public Clothing Clothing { get; set; }
 
-	[JsonTypeAnnotate]
+	[JsonTypeAnnotate, Instanced]
 	public Something Something { get; set; }
 
 	public Dictionary<string, int> Dictionary { get; set; }
