@@ -49,4 +49,6 @@ public class ExampleRowStruct : RowStruct
 	public Something Something { get; set; }
 
 	public Dictionary<string, int> Dictionary { get; set; }
+
+	public Curve Curve { get; set; }
 }
