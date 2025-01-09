@@ -233,6 +233,38 @@ public class DataTableEditor : DockWindow
 		_tableEditor.Layout.Clear( true );
 
 		_tableView = new TableView( _tableEditor );
+		_tableView.ListView.BodyContextMenu = () =>
+		{
+			var m = new ContextMenu( this );
+
+			m.AddOption( "Add", "add", () =>
+			{
+				AddEntry();
+			} );
+
+			m.AddOption( "Paste", "content_paste", () =>
+			{
+				Paste();
+			} );
+
+			m.OpenAtCursor();
+		};
+		_tableView.ListView.ItemContextMenu = o =>
+		{
+			var m = new ContextMenu( this );
+
+			m.AddOption( "Copy", "content_copy", () =>
+			{
+				Copy();
+			} );
+
+			m.AddOption( "Delete", "delete", () =>
+			{
+				RemoveEntry();
+			} );
+
+			m.OpenAtCursor();
+		};
 
 		var structType = TypeLibrary.GetType( _structType.TargetType );
 
@@ -373,6 +405,38 @@ public class DataTableEditor : DockWindow
 		_tableEditor.Name = "Table View";
 
 		_tableView = new TableView( _tableEditor );
+		_tableView.ListView.BodyContextMenu = () =>
+		{
+			var m = new ContextMenu( this );
+
+			m.AddOption( "Add", "add", () =>
+			{
+				AddEntry();
+			} );
+
+			m.AddOption( "Paste", "content_paste", () =>
+			{
+				Paste();
+			} );
+
+			m.OpenAtCursor();
+		};
+		_tableView.ListView.ItemContextMenu = o =>
+		{
+			var m = new ContextMenu( this );
+
+			m.AddOption( "Copy", "content_copy", () =>
+			{
+				Copy();
+			} );
+
+			m.AddOption( "Delete", "delete", () =>
+			{
+				RemoveEntry();
+			} );
+
+			m.OpenAtCursor();
+		};
 
 		var rowNameCol = _tableView.AddColumn();
 		rowNameCol.Name = "RowName";
@@ -637,7 +701,7 @@ public class DataTableEditor : DockWindow
 		_toolBar.AddSeparator();
 		_addOption = _toolBar.AddOption( "Add", "add", AddEntry );
 		_addOption.StatusTip = "Append a new entry";
-		_duplicateOption = _toolBar.AddOption( "Duplicate", "content_copy", DuplicateEntry );
+		_duplicateOption = _toolBar.AddOption( "Duplicate", "copy_all", DuplicateEntry );
 		_duplicateOption.StatusTip = "Appends a duplicate of the currently selected entry";
 		_deleteOption = _toolBar.AddOption( "Delete", "delete_outline", RemoveEntry );
 		_deleteOption.StatusTip = "Delete the currently selected entry";
