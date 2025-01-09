@@ -103,9 +103,11 @@ public class DataTableEditor : DockWindow
 			MarkUnsaved();
 			//PopulateEditor();
 			_sheet.Clear( true );
-			UpdateViewAndEditor();
 
 			EditorState undoState = op.UndoEditorState;
+			_sheetRowName = undoState.SheetRowName;
+			UpdateViewAndEditor();
+
 			EntryCount = undoState.EntryCount;
 			_tableView.ListView.Selection.Clear();
 			foreach ( var rowName in undoState.SelectedNames )
@@ -131,9 +133,11 @@ public class DataTableEditor : DockWindow
 			MarkUnsaved();
 			//PopulateEditor();
 			_sheet.Clear( true );
-			UpdateViewAndEditor();
 
 			EditorState redoState = op.RedoEditorState;
+			_sheetRowName = redoState.SheetRowName;
+			UpdateViewAndEditor();
+
 			EntryCount = redoState.EntryCount;
 			_tableView.ListView.Selection.Clear();
 			foreach ( var rowName in redoState.SelectedNames )
@@ -267,11 +271,18 @@ public class DataTableEditor : DockWindow
 
 		_tableView.ItemClicked = o =>
 		{
-			//_sheetRowName = pair.Key;
+			RowStruct row = (RowStruct)o;
+			_sheetRowName = row.RowName;
 			PopulateControlSheet( o );
 		};
 
 		_tableEditor.Layout.Add( _tableView );
+
+		RowStruct row = InternalEntries.Find( o => o.RowName == _sheetRowName );
+		if ( row is not null )
+		{
+			PopulateControlSheet( row );
+		}
 	}
 
 	private Widget _rowEditor;
@@ -399,7 +410,8 @@ public class DataTableEditor : DockWindow
 		_tableView.ItemClicked = o =>
 		{
 			//var pair = (KeyValuePair<string, RowStruct>)o;
-			//_sheetRowName = pair.Key;
+			RowStruct row = (RowStruct)o;
+			_sheetRowName = row.RowName;
 			PopulateControlSheet( o );
 		};
 
@@ -651,7 +663,7 @@ public class DataTableEditor : DockWindow
 			InternalEntries.Add( o );
 			_tableView.AddItem( o );
 
-			//_sheetRowName = key;
+			_sheetRowName = o.RowName;
 			PopulateControlSheet( o );
 
 			newSelections.Add( o );
@@ -702,7 +714,7 @@ public class DataTableEditor : DockWindow
 		{
 			_tableView.ListView.Selection.Add( InternalEntries[index] );
 
-			//_sheetRowName = key;
+			_sheetRowName = InternalEntries[index].RowName;
 			PopulateControlSheet( InternalEntries[index] );
 		}
 
@@ -732,7 +744,7 @@ public class DataTableEditor : DockWindow
 		_tableView.ListView.Selection.Clear();
 		_tableView.ListView.Selection.Add( o );
 
-		//_sheetRowName = key;
+		_sheetRowName = o.RowName;
 		PopulateControlSheet( o );
 
 		_tableView.ListView.ScrollTo( o );
