@@ -869,37 +869,19 @@ public class DataTableEditor : DockWindow
 		if ( !fd.Execute() )
 			return;
 
-		Action saveAs = () =>
+		JsonObject jobj = new();
+		jobj["StructType"] = _structType.FullName;
+		jobj["StructEntries"] = Json.SerializeList( InternalEntries, true );
+		File.WriteAllText( fd.SelectedFile, jobj.ToJsonString() );
+		_asset = AssetSystem.RegisterFile( fd.SelectedFile );
+		if ( _asset == null )
 		{
-			File.WriteAllText( fd.SelectedFile, _dataTable.Serialize().ToJsonString() );
-			_asset = AssetSystem.RegisterFile( fd.SelectedFile );
-			if ( _asset == null )
-			{
-				Log.Warning( $"Unable to register asset {fd.SelectedFile}" );
+			Log.Warning( $"Unable to register asset {fd.SelectedFile}" );
 
-				return;
-			}
-
-			SaveAsAsync( _asset.AbsolutePath );
-		};
-
-		if ( _isUnsaved )
-		{
-			CloseDialog dialog = new($"Data Table Editor - {_asset.Path}", () =>
-			{
-				Save();
-				saveAs();
-			}, () =>
-			{
-				_isUnsaved = false;
-				if ( _dataTable.StructEntries.Count == 0 )
-					_dataTable.EntryCount = 0;
-				saveAs();
-			});
 			return;
 		}
 
-		saveAs();
+		SaveAsAsync( _asset.AbsolutePath );
 	}
 
 	private async void SaveAsAsync( string path )
@@ -913,6 +895,8 @@ public class DataTableEditor : DockWindow
 
 		MainAssetBrowser.Instance?.UpdateAssetList();
 		DataTableEditor editor = new(_asset); // @TODO: When saving, don't open a new editor! Do what ShaderGraph instead
+
+		_isUnsaved = false;
 		Close();
 	}
 
