@@ -19,6 +19,9 @@ internal static class TypeLibraryHelperExtensions
 
 	public static object CloneInternal( this TypeLibrary typeLibrary, object target )
 	{
+		if ( target is null )
+			return null;
+
 		var targetType = target.GetType();
 		TypeDescription type = typeLibrary.GetType( targetType );
 
