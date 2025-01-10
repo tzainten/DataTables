@@ -29,7 +29,6 @@ public class DataTable : GameResource
 	public T Get<T>( string rowName ) where T : RowStruct
 	{
 		T result = (T)StructEntries.Find( x => x.RowName == rowName );
-		Log.Info( WeakTable.Count );
 		if ( !WeakTable.ContainsKey( rowName ) )
 			WeakTable.Add( rowName, new WeakReference( result ) );
 		return result;
