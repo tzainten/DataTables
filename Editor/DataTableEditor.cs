@@ -22,6 +22,8 @@ public class DataTableEditor : DockWindow
 {
 	public bool CanOpenMultipleAssets => false;
 
+	private Dictionary<string, WeakReference> _weakTable = new();
+
 	private Asset _asset;
 	private DataTable _dataTable;
 	private TypeDescription _structType;
@@ -66,7 +68,11 @@ public class DataTableEditor : DockWindow
 		EntryCount = _dataTable.EntryCount;
 
 		foreach ( var row in _dataTable.StructEntries )
-			InternalEntries.Add( TypeLibrary.Clone<RowStruct>( row ) );
+		{
+			var newRow = TypeLibrary.Clone( row );
+			_weakTable.Add( row.RowName, new WeakReference( row ) );
+			InternalEntries.Add( newRow );
+		}
 
 		_previousJson = SerializeEntries();
 		_lastSaveJson = _previousJson;
@@ -177,7 +183,7 @@ public class DataTableEditor : DockWindow
 
 	private string EvaluateTitle()
 	{
-		return $"Data Table Editor - {_asset.Path}{(_isUnsaved ? "*" : "")} {(Game.IsPlaying ? "(Restricted)" : "")}";
+		return $"Data Table Editor - {_asset.Path}{(_isUnsaved ? "*" : "")}";
 	}
 
 	private int _mouseUpFrames;
@@ -194,9 +200,9 @@ public class DataTableEditor : DockWindow
 
 		Title = EvaluateTitle();
 
-		_addOption.Enabled = !Game.IsPlaying;
+		/*_addOption.Enabled = !Game.IsPlaying;
 		_duplicateOption.Enabled = !Game.IsPlaying;
-		_deleteOption.Enabled = !Game.IsPlaying;
+		_deleteOption.Enabled = !Game.IsPlaying;*/
 
 		_mouseUpFrames++;
 		if ( Application.MouseButtons != 0 )
@@ -885,8 +891,8 @@ public class DataTableEditor : DockWindow
 		for ( i = _dataTable.StructEntries.Count - 1; i >= 0; i-- )
 		{
 			var row = _dataTable.StructEntries[i];
-			var otherRow = InternalEntries.Find( x => x.RowName == row.RowName );
-			if ( otherRow is null )
+			var internalRow = InternalEntries.Find( x => x.RowName == row.RowName );
+			if ( internalRow is null )
 				_dataTable.StructEntries.RemoveAt( i );
 		}
 
@@ -895,12 +901,29 @@ public class DataTableEditor : DockWindow
 		{
 			var internalRow = InternalEntries[i];
 			var row = _dataTable.StructEntries.Find( x => x.RowName == internalRow.RowName );
+
 			if ( row is not null )
 			{
 				TypeLibrary.Merge( row, internalRow );
 			}
 			else
 			{
+				RowStruct weakRow = null;
+				if ( _weakTable.TryGetValue( internalRow.RowName, out WeakReference weakReference ) )
+				{
+					if ( !weakReference.IsAlive )
+					{
+						_weakTable.Remove( internalRow.RowName );
+						insertIndices.Add( i );
+						continue;
+					}
+
+					weakRow = (RowStruct)weakReference.Target;
+					TypeLibrary.Merge( weakRow, internalRow );
+					_dataTable.StructEntries.Insert( i, weakRow );
+					continue;
+				}
+
 				insertIndices.Add( i );
 			}
 		}
