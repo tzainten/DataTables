@@ -101,37 +101,28 @@ internal static class Json
 		     type.IsAssignableTo( typeof(string) ) )
 			return Sandbox.Json.ToNode( target ).AsObject();
 
-		var props = typeDesc.Properties.Where( x => x.IsPublic && !x.IsStatic && x.CanRead && x.CanWrite &&
-		                                            !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
-		                                            !x.HasAttribute( typeof(HideAttribute) ) )
-			.OrderBy( x => x.Order )
-			.ThenBy( x => x.SourceFile )
-			.ThenBy( x => x.SourceLine )
-			.ToList();
-
-		foreach ( var property in props )
+		var members = TypeLibrary.GetFieldsAndProperties( typeDesc );
+		foreach ( var member in members )
 		{
-			var value = property.GetValue( target );
+			object value = null;
+			if ( member.IsField )
+			{
+				FieldDescription field = (FieldDescription)member;
+				value = field.GetValue( target );
+				if ( value is null )
+					continue;
+
+				jobj[field.Name] = Serialize( value, field.HasAttribute( typeof(JsonTypeAnnotateAttribute) ) );
+
+				continue;
+			}
+
+			PropertyDescription property = (PropertyDescription)member;
+			value = property.GetValue( target );
 			if ( value is null )
 				continue;
 
 			jobj[property.Name] = Serialize( value, property.HasAttribute( typeof(JsonTypeAnnotateAttribute) ) );
-		}
-
-		var fields = typeDesc.Fields.Where( x => x.IsPublic && !x.IsStatic &&
-		                                         !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
-		                                         !x.HasAttribute( typeof(HideAttribute) ) )
-			.OrderBy( x => x.Order )
-			.ThenBy( x => x.SourceFile )
-			.ThenBy( x => x.SourceLine )
-			.ToList();
-
-		foreach ( var field in fields )
-		{
-			var value = field.GetValue( target );
-			if ( value is null )
-				continue;
-			jobj[field.Name] = Serialize( value, field.HasAttribute( typeof(JsonTypeAnnotateAttribute) ) );
 		}
 
 		return jobj;
@@ -273,11 +264,12 @@ internal static class Json
 		{
 			var node = enumerator.Current;
 
-			var property = typeDesc.GetProperty( node.Key );
-			bool isValidProperty = property is not null && property.CanWrite && property.CanRead;
+			var property = typeDesc.Properties.FirstOrDefault( x =>
+				x.IsPublic && !x.IsStatic && x.IsNamed( node.Key ) && x.CanWrite && x.CanRead );
+			bool isValidProperty = property is not null;
 
-			var field = typeDesc.Fields.FirstOrDefault( x => !x.IsStatic && x.IsNamed( node.Key ) );
-			bool isValidField = field is not null && field.IsPublic;
+			var field = typeDesc.Fields.FirstOrDefault( x => x.IsPublic && !x.IsStatic && x.IsNamed( node.Key ) );
+			bool isValidField = field is not null;
 
 			if ( !isValidProperty && !isValidField )
 				continue;

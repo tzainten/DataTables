@@ -7,11 +7,28 @@ using System.Text.Json.Serialization;
 using Sandbox;
 using Sandbox.Diagnostics;
 using Sandbox.Internal;
+using Sandbox.UI;
 
 namespace DataTables;
 
 internal static class TypeLibraryHelperExtensions
 {
+	public static List<MemberDescription> GetFieldsAndProperties( this TypeLibrary typeLibrary, TypeDescription type )
+	{
+		var props = type.Properties.Where( x => x.IsPublic && !x.IsStatic && x.CanRead && x.CanWrite &&
+		                                        !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+		                                        !x.HasAttribute( typeof(HideAttribute) ) );
+
+		var fields = type.Fields.Where( x => x.IsPublic && !x.IsStatic &&
+		                                     !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+		                                     !x.HasAttribute( typeof(HideAttribute) ) );
+
+		return props.Concat<MemberDescription>( fields ).OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
+	}
+
 	public static T Clone<T>( this TypeLibrary typeLibrary, T target )
 	{
 		return (T)CloneInternal( typeLibrary, target );
@@ -74,35 +91,23 @@ internal static class TypeLibraryHelperExtensions
 
 		object instance = typeLibrary.Create<object>( targetType );
 
-		var fields = type.Fields.Where( x => x.IsPublic && !x.IsStatic &&
-		                                     !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
-		                                     !x.HasAttribute( typeof(HideAttribute) ) )
-			.OrderBy( x => x.Order )
-			.ThenBy( x => x.SourceFile )
-			.ThenBy( x => x.SourceLine )
-			.ToList();
-
-
-		foreach ( var field in fields )
+		var members = typeLibrary.GetFieldsAndProperties( type );
+		foreach ( var member in members )
 		{
-			var value = field.GetValue( target );
-			if ( value is null )
+			object value = null;
+			if ( member.IsField )
+			{
+				FieldDescription field = (FieldDescription)member;
+				value = field.GetValue( target );
+				if ( value is null )
+					continue;
+
+				field.SetValue( instance, CloneInternal( typeLibrary, value ) );
 				continue;
+			}
 
-			field.SetValue( instance, CloneInternal( typeLibrary, value ) );
-		}
-
-		var props = type.Properties.Where( x => x.IsPublic && !x.IsStatic && x.CanRead && x.CanWrite &&
-		                                        !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
-		                                        !x.HasAttribute( typeof(HideAttribute) ) )
-			.OrderBy( x => x.Order )
-			.ThenBy( x => x.SourceFile )
-			.ThenBy( x => x.SourceLine )
-			.ToList();
-
-		foreach ( var property in props )
-		{
-			var value = property.GetValue( target );
+			PropertyDescription property = (PropertyDescription)member;
+			value = property.GetValue( target );
 			if ( value is null )
 				continue;
 
@@ -129,30 +134,16 @@ internal static class TypeLibraryHelperExtensions
 			return merger;
 		}
 
-		var fields = type.Fields.Where( x => x.IsPublic && !x.IsStatic &&
-		                                     !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
-		                                     !x.HasAttribute( typeof(HideAttribute) ) )
-			.OrderBy( x => x.Order )
-			.ThenBy( x => x.SourceFile )
-			.ThenBy( x => x.SourceLine )
-			.ToList();
-
-		foreach ( var field in fields )
+		var members = typeLibrary.GetFieldsAndProperties( type );
+		foreach ( var member in members )
 		{
-			MergeField( typeLibrary, field, target, merger );
-		}
+			if ( member.IsField )
+			{
+				MergeField( typeLibrary, (FieldDescription)member, target, merger );
+				continue;
+			}
 
-		var props = type.Properties.Where( x => x.IsPublic && !x.IsStatic && x.CanRead && x.CanWrite &&
-		                                        !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
-		                                        !x.HasAttribute( typeof(HideAttribute) ) )
-			.OrderBy( x => x.Order )
-			.ThenBy( x => x.SourceFile )
-			.ThenBy( x => x.SourceLine )
-			.ToList();
-
-		foreach ( var property in props )
-		{
-			MergeProperty( typeLibrary, property, target, merger );
+			MergeProperty( typeLibrary, (PropertyDescription)member, target, merger );
 		}
 
 		return target;
@@ -225,17 +216,16 @@ internal static class TypeLibraryHelperExtensions
 			return;
 		}
 
-		var fields = fieldType.Fields.Where( x => x.IsPublic && !x.IsStatic &&
-		                                          !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
-		                                          !x.HasAttribute( typeof(HideAttribute) ) )
-			.OrderBy( x => x.Order )
-			.ThenBy( x => x.SourceFile )
-			.ThenBy( x => x.SourceLine )
-			.ToList();
-
-		foreach ( var innerField in fields )
+		var members = typeLibrary.GetFieldsAndProperties( fieldType );
+		foreach ( var member in members )
 		{
-			MergeField( typeLibrary, innerField, field.GetValue( target ), mergerValue );
+			if ( member.IsField )
+			{
+				MergeField( typeLibrary, (FieldDescription)member, field.GetValue( target ), mergerValue );
+				continue;
+			}
+
+			MergeProperty( typeLibrary, (PropertyDescription)member, field.GetValue( target ), mergerValue );
 		}
 	}
 
@@ -306,17 +296,16 @@ internal static class TypeLibraryHelperExtensions
 			return;
 		}
 
-		var props = propertyType.Properties.Where( x => x.IsPublic && !x.IsStatic && x.CanRead && x.CanWrite &&
-		                                        !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
-		                                        !x.HasAttribute( typeof(HideAttribute) ) )
-			.OrderBy( x => x.Order )
-			.ThenBy( x => x.SourceFile )
-			.ThenBy( x => x.SourceLine )
-			.ToList();
-
-		foreach ( var innerProperty in props )
+		var members = typeLibrary.GetFieldsAndProperties( propertyType );
+		foreach ( var member in members )
 		{
-			MergeProperty( typeLibrary, innerProperty, property.GetValue( target ), mergerValue );
+			if ( member.IsField )
+			{
+				MergeField( typeLibrary, (FieldDescription)member, property.GetValue( target ), mergerValue );
+				continue;
+			}
+
+			MergeProperty( typeLibrary, (PropertyDescription)member, property.GetValue( target ), mergerValue );
 		}
 	}
 

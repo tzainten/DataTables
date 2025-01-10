@@ -23,7 +23,7 @@ public class DataTableEditor : DockWindow
 {
 	public bool CanOpenMultipleAssets => false;
 
-	private Dictionary<string, WeakReference> _weakTable = new();
+	private Dictionary<string, WeakReference> _weakTable;
 
 	private Asset _asset;
 	private DataTable _dataTable;
@@ -54,6 +54,7 @@ public class DataTableEditor : DockWindow
 	{
 		_asset = asset;
 		_dataTable = _asset.LoadResource<DataTable>();
+		_weakTable = _dataTable.WeakTable;
 
 		if ( _dataTable is null )
 		{
@@ -70,9 +71,7 @@ public class DataTableEditor : DockWindow
 
 		foreach ( var row in _dataTable.StructEntries )
 		{
-			var newRow = TypeLibrary.Clone( row );
-			_weakTable.Add( row.RowName, new WeakReference( row ) );
-			InternalEntries.Add( newRow );
+			InternalEntries.Add( TypeLibrary.Clone( row ) );
 		}
 
 		_previousJson = SerializeEntries();
@@ -275,27 +274,25 @@ public class DataTableEditor : DockWindow
 
 		var structType = TypeLibrary.GetType( _structType.TargetType );
 
-		var so = TypeLibrary.Create<RowStruct>( structType.TargetType ).GetSerialized();
-		var props = so.AsEnumerable().Where( x =>
-				x.IsPublic && x.IsEditable && !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
-				!x.HasAttribute( typeof(HideAttribute) ) )
-			.OrderBy( x => x.Order )
-			.ThenBy( x => x.SourceFile )
-			.ThenBy( x => x.SourceLine )
-			.ToList();
-
-		foreach ( var property in props )
+		foreach ( var member in TypeLibrary.GetFieldsAndProperties( structType ) )
 		{
 			var col = _tableView.AddColumn();
 
-			if ( property.Name == "RowName" )
+			if ( member.Name == "RowName" )
 				col.TextColor = Color.Parse( "#e1913c" ).GetValueOrDefault();
 
-			col.Name = property.Name;
+			col.Name = member.Name;
 			col.Value = o =>
 			{
-				var _so = o.GetSerialized();
-				return _so.GetProperty( property.Name )?.GetValue<object>()?.ToString() ?? "";
+				if ( member.IsField )
+				{
+					FieldDescription field = structType.Fields.FirstOrDefault( x => x.IsNamed( member.Name ) );
+					return field?.GetValue( o )?.ToString() ?? "";
+				}
+
+				PropertyDescription property =
+					structType.Properties.FirstOrDefault( x => x.IsNamed( member.Name ) );
+				return property?.GetValue( o )?.ToString() ?? "";
 			};
 		}
 
@@ -446,27 +443,25 @@ public class DataTableEditor : DockWindow
 			m.OpenAtCursor();
 		};
 
-		var so = TypeLibrary.Create<RowStruct>( structType.TargetType ).GetSerialized();
-		var props = so.AsEnumerable().Where( x =>
-				x.IsPublic && x.IsEditable && !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
-				!x.HasAttribute( typeof(HideAttribute) ) )
-			.OrderBy( x => x.Order )
-			.ThenBy( x => x.SourceFile )
-			.ThenBy( x => x.SourceLine )
-			.ToList();
-
-		foreach ( var property in props )
+		foreach ( var member in TypeLibrary.GetFieldsAndProperties( structType ) )
 		{
 			var col = _tableView.AddColumn();
 
-			if ( property.Name == "RowName" )
+			if ( member.Name == "RowName" )
 				col.TextColor = Color.Parse( "#e1913c" ).GetValueOrDefault();
 
-			col.Name = property.Name;
+			col.Name = member.Name;
 			col.Value = o =>
 			{
-				var _so = o.GetSerialized();
-				return _so.GetProperty( property.Name )?.GetValue<object>()?.ToString() ?? "";
+				if ( member.IsField )
+				{
+					FieldDescription field = structType.Fields.FirstOrDefault( x => x.IsNamed( member.Name ) );
+					return field?.GetValue( o )?.ToString() ?? "";
+				}
+
+				PropertyDescription property =
+					structType.Properties.FirstOrDefault( x => x.IsNamed( member.Name ) );
+				return property?.GetValue( o )?.ToString() ?? "";
 			};
 		}
 
@@ -908,8 +903,7 @@ public class DataTableEditor : DockWindow
 		if ( InternalEntries.Count == 0 )
 			EntryCount = 0;
 
-		int i;
-		for ( i = _dataTable.StructEntries.Count - 1; i >= 0; i-- )
+		for ( int i = _dataTable.StructEntries.Count - 1; i >= 0; i-- )
 		{
 			var row = _dataTable.StructEntries[i];
 			var internalRow = InternalEntries.Find( x => x.RowName == row.RowName );
@@ -917,8 +911,7 @@ public class DataTableEditor : DockWindow
 				_dataTable.StructEntries.RemoveAt( i );
 		}
 
-		List<int> insertIndices = new();
-		for ( i = 0; i < InternalEntries.Count; i++ )
+		for ( int i = 0; i < InternalEntries.Count; i++ )
 		{
 			var internalRow = InternalEntries[i];
 			var row = _dataTable.StructEntries.Find( x => x.RowName == internalRow.RowName );
@@ -929,36 +922,32 @@ public class DataTableEditor : DockWindow
 			}
 			else
 			{
-				RowStruct weakRow = null;
 				if ( _weakTable.TryGetValue( internalRow.RowName, out WeakReference weakReference ) )
 				{
 					if ( !weakReference.IsAlive )
 					{
 						_weakTable.Remove( internalRow.RowName );
-						insertIndices.Add( i );
+						_dataTable.StructEntries.Insert( i, TypeLibrary.Clone( internalRow ) );
 						continue;
 					}
 
-					weakRow = (RowStruct)weakReference.Target;
+					RowStruct weakRow = (RowStruct)weakReference.Target;
 					TypeLibrary.Merge( weakRow, internalRow );
 					_dataTable.StructEntries.Insert( i, weakRow );
 					continue;
 				}
 
-				insertIndices.Add( i );
+				_dataTable.StructEntries.Insert( i, TypeLibrary.Clone( internalRow ) );
 			}
 		}
 
-		foreach ( var index in insertIndices )
-		{
-			_dataTable.StructEntries.Insert( index, TypeLibrary.Clone<RowStruct>( InternalEntries[index] ) );
-		}
+		if (_dataTable.StructEntries.Count != InternalEntries.Count)
+			Log.Error($"Data Table {_dataTable} failed to merge! {_dataTable.StructEntries.Count} != {InternalEntries.Count}"  );
 
 		_lastSaveJson = SerializeEntries();
 		_dataTable.EntryCount = EntryCount;
-		_asset.SaveToDisk( _dataTable );
-
-		EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
+		if ( _asset.SaveToDisk( _dataTable ) )
+			EditorUtility.PlayRawSound( "sounds/editor/success.wav" );
 	}
 
 	[Shortcut("editor.save-as", "CTRL+SHIFT+S", ShortcutType.Window)]

@@ -17,6 +17,8 @@ public class RowStruct
 [GameResource( "Data Table", "dt", "Description", Icon = "equalizer", IconBgColor = "#b0e24d" )]
 public class DataTable : GameResource
 {
+	[Hide] internal Dictionary<string, WeakReference> WeakTable = new();
+
 	[Hide] public string StructType { get; set; }
 
 	[Hide] public List<RowStruct> StructEntries = new();
@@ -26,7 +28,11 @@ public class DataTable : GameResource
 	[Title( "Get Row - {T|RowStruct}" )]
 	public T Get<T>( string rowName ) where T : RowStruct
 	{
-		return (T)StructEntries.Find( x => x.RowName == rowName );
+		T result = (T)StructEntries.Find( x => x.RowName == rowName );
+		Log.Info( WeakTable.Count );
+		if ( !WeakTable.ContainsKey( rowName ) )
+			WeakTable.Add( rowName, new WeakReference( result ) );
+		return result;
 	}
 
 	internal void Fix()
