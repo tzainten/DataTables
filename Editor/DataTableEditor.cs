@@ -533,10 +533,26 @@ public class DataTableEditor : DockWindow
 
 	private string _sheetRowName;
 
-	private void PopulateControlSheet( object so )
+	private void PopulateControlSheet( object o )
 	{
 		_sheet.Clear( true );
-		_sheet.AddObject( so.GetSerialized(), SheetFilter );
+
+		_sheet.Margin = new Sandbox.UI.Margin( 8 );
+		_sheet.Spacing = 4f;
+
+		SerializedObject so = o.GetSerialized();
+		var properties = so.AsEnumerable();
+
+		var props = properties.Where( x => !x.IsField )
+			.OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
+
+		foreach ( var prop in props )
+		{
+			_sheet.AddRow( prop );
+		}
 	}
 
 	public void BuildMenuBar()
