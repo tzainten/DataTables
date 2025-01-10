@@ -2,7 +2,7 @@ using System;
 
 namespace DataTables;
 
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+[AttributeUsage(AttributeTargets.Property)]
 public class InstancedAttribute : Attribute
 {
 }

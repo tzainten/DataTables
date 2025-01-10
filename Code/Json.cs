@@ -10,7 +10,7 @@ using Sandbox.Diagnostics;
 
 namespace DataTables;
 
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+[AttributeUsage(AttributeTargets.Property)]
 public class JsonTypeAnnotateAttribute : Attribute
 {
 }
@@ -112,20 +112,6 @@ internal static class Json
 					continue;
 
 				jobj[property.Name] = Serialize( value, property.HasAttribute( typeof(JsonTypeAnnotateAttribute) ) );
-			}
-		}
-
-		foreach ( var field in typeDesc.Fields.Where( x => x.IsPublic && !x.IsStatic ) )
-		{
-			var hasIgnore = field.HasAttribute<JsonIgnoreAttribute>();
-
-			if ( !hasIgnore && field.IsPublic )
-			{
-				var value = field.GetValue( target );
-				if ( value is null )
-					continue;
-
-				jobj[field.Name] = Serialize( value, field.HasAttribute( typeof(JsonTypeAnnotateAttribute) ) );
 			}
 		}
 
@@ -269,27 +255,15 @@ internal static class Json
 			var node = enumerator.Current;
 
 			var property = typeDesc.GetProperty( node.Key );
-			bool isValidProperty = property is not null && property.CanWrite && property.CanRead;
-
-			var field = typeDesc.Fields.FirstOrDefault( x => !x.IsStatic && x.IsNamed( node.Key ) );
-			bool isValidField = field is not null && field.IsPublic;
-
-			if ( !isValidProperty && !isValidField )
+			if ( property is null )
 				continue;
 
-			var deserializeType = isValidProperty ? property.PropertyType : field.FieldType;
-
-			var value = DeserializeInternal( node.Value, deserializeType );
+			var value = DeserializeInternal( node.Value, property.PropertyType );
 			if ( value is null )
 				continue;
 
-			if ( value.GetType().IsAssignableTo( deserializeType ) )
-			{
-				if ( isValidProperty )
-					property.SetValue( instance, value );
-				else
-					field.SetValue( instance, value );
-			}
+			if ( value.GetType().IsAssignableTo( property.PropertyType ) )
+				property.SetValue( instance, value );
 		}
 
 		return instance;
