@@ -73,7 +73,17 @@ internal static class TypeLibraryHelperExtensions
 			return target;
 
 		object instance = typeLibrary.Create<object>( targetType );
-		foreach ( var field in type.Fields.Where( x => x.IsPublic && !x.IsStatic ) )
+
+		var fields = type.Fields.Where( x => x.IsPublic && !x.IsStatic &&
+		                                     !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+		                                     !x.HasAttribute( typeof(HideAttribute) ) )
+			.OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
+
+
+		foreach ( var field in fields )
 		{
 			var value = field.GetValue( target );
 			if ( value is null )
@@ -82,7 +92,15 @@ internal static class TypeLibraryHelperExtensions
 			field.SetValue( instance, CloneInternal( typeLibrary, value ) );
 		}
 
-		foreach ( var property in type.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+		var props = type.Properties.Where( x => x.IsPublic && !x.IsStatic && x.CanRead && x.CanWrite &&
+		                                        !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+		                                        !x.HasAttribute( typeof(HideAttribute) ) )
+			.OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
+
+		foreach ( var property in props )
 		{
 			var value = property.GetValue( target );
 			if ( value is null )
@@ -111,12 +129,28 @@ internal static class TypeLibraryHelperExtensions
 			return merger;
 		}
 
-		foreach ( var field in type.Fields.Where( x => x.IsPublic && !x.IsStatic ) )
+		var fields = type.Fields.Where( x => x.IsPublic && !x.IsStatic &&
+		                                     !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+		                                     !x.HasAttribute( typeof(HideAttribute) ) )
+			.OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
+
+		foreach ( var field in fields )
 		{
 			MergeField( typeLibrary, field, target, merger );
 		}
 
-		foreach ( var property in type.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+		var props = type.Properties.Where( x => x.IsPublic && !x.IsStatic && x.CanRead && x.CanWrite &&
+		                                        !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+		                                        !x.HasAttribute( typeof(HideAttribute) ) )
+			.OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
+
+		foreach ( var property in props )
 		{
 			MergeProperty( typeLibrary, property, target, merger );
 		}
@@ -191,7 +225,15 @@ internal static class TypeLibraryHelperExtensions
 			return;
 		}
 
-		foreach ( var innerField in fieldType.Fields.Where( x => x.IsPublic && !x.IsStatic ) )
+		var fields = fieldType.Fields.Where( x => x.IsPublic && !x.IsStatic &&
+		                                          !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+		                                          !x.HasAttribute( typeof(HideAttribute) ) )
+			.OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
+
+		foreach ( var innerField in fields )
 		{
 			MergeField( typeLibrary, innerField, field.GetValue( target ), mergerValue );
 		}
@@ -264,7 +306,15 @@ internal static class TypeLibraryHelperExtensions
 			return;
 		}
 
-		foreach ( var innerProperty in propertyType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+		var props = propertyType.Properties.Where( x => x.IsPublic && !x.IsStatic && x.CanRead && x.CanWrite &&
+		                                        !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+		                                        !x.HasAttribute( typeof(HideAttribute) ) )
+			.OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
+
+		foreach ( var innerProperty in props )
 		{
 			MergeProperty( typeLibrary, innerProperty, property.GetValue( target ), mergerValue );
 		}

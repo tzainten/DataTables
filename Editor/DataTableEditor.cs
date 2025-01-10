@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using DataTables;
 using Editor;
@@ -274,26 +275,27 @@ public class DataTableEditor : DockWindow
 
 		var structType = TypeLibrary.GetType( _structType.TargetType );
 
-		var rowNameCol = _tableView.AddColumn();
-		rowNameCol.Name = "RowName";
-		rowNameCol.TextColor = Color.Parse( "#e1913c" ).GetValueOrDefault();
-		rowNameCol.Value = o =>
-		{
-			var row = (RowStruct)o;
-			return row.RowName;
-		};
+		var so = TypeLibrary.Create<RowStruct>( structType.TargetType ).GetSerialized();
+		var props = so.AsEnumerable().Where( x =>
+				x.IsPublic && x.IsEditable && !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+				!x.HasAttribute( typeof(HideAttribute) ) )
+			.OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
 
-		foreach ( var property in structType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+		foreach ( var property in props )
 		{
-			if ( property.Name == "RowName" )
-				continue;
-
 			var col = _tableView.AddColumn();
+
+			if ( property.Name == "RowName" )
+				col.TextColor = Color.Parse( "#e1913c" ).GetValueOrDefault();
+
 			col.Name = property.Name;
 			col.Value = o =>
 			{
-				var row = (RowStruct)o;
-				return property.GetValue( row )?.ToString() ?? "";
+				var _so = o.GetSerialized();
+				return _so.GetProperty( property.Name )?.GetValue<object>()?.ToString() ?? "";
 			};
 		}
 
@@ -444,26 +446,27 @@ public class DataTableEditor : DockWindow
 			m.OpenAtCursor();
 		};
 
-		var rowNameCol = _tableView.AddColumn();
-		rowNameCol.Name = "RowName";
-		rowNameCol.TextColor = Color.Parse( "#e1913c" ).GetValueOrDefault();
-		rowNameCol.Value = o =>
-		{
-			var row = (RowStruct)o;
-			return row.RowName;
-		};
+		var so = TypeLibrary.Create<RowStruct>( structType.TargetType ).GetSerialized();
+		var props = so.AsEnumerable().Where( x =>
+				x.IsPublic && x.IsEditable && !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+				!x.HasAttribute( typeof(HideAttribute) ) )
+			.OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
 
-		foreach ( var property in structType.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+		foreach ( var property in props )
 		{
-			if ( property.Name == "RowName" )
-				continue;
-
 			var col = _tableView.AddColumn();
+
+			if ( property.Name == "RowName" )
+				col.TextColor = Color.Parse( "#e1913c" ).GetValueOrDefault();
+
 			col.Name = property.Name;
 			col.Value = o =>
 			{
-				var row = (RowStruct)o;
-				return property.GetValue( row )?.ToString() ?? "";
+				var _so = o.GetSerialized();
+				return _so.GetProperty( property.Name )?.GetValue<object>()?.ToString() ?? "";
 			};
 		}
 
@@ -543,7 +546,9 @@ public class DataTableEditor : DockWindow
 		SerializedObject so = o.GetSerialized();
 		var properties = so.AsEnumerable();
 
-		var props = properties.Where( x => !x.IsField )
+		var props = so.AsEnumerable().Where( x =>
+				x.IsPublic && x.IsEditable && !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+				!x.HasAttribute( typeof(HideAttribute) ) )
 			.OrderBy( x => x.Order )
 			.ThenBy( x => x.SourceFile )
 			.ThenBy( x => x.SourceLine )

@@ -10,7 +10,7 @@ using Sandbox.Diagnostics;
 
 namespace DataTables;
 
-[AttributeUsage(AttributeTargets.Property)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
 public class JsonTypeAnnotateAttribute : Attribute
 {
 }
@@ -101,18 +101,37 @@ internal static class Json
 		     type.IsAssignableTo( typeof(string) ) )
 			return Sandbox.Json.ToNode( target ).AsObject();
 
-		foreach ( var property in typeDesc.Properties.Where( x => x.IsPublic && !x.IsStatic ) )
+		var props = typeDesc.Properties.Where( x => x.IsPublic && !x.IsStatic && x.CanRead && x.CanWrite &&
+		                                            !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+		                                            !x.HasAttribute( typeof(HideAttribute) ) )
+			.OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
+
+		foreach ( var property in props )
 		{
-			var hasIgnore = property.HasAttribute<JsonIgnoreAttribute>();
+			var value = property.GetValue( target );
+			if ( value is null )
+				continue;
 
-			if ( !hasIgnore && property.CanRead && property.CanWrite )
-			{
-				var value = property.GetValue( target );
-				if ( value is null )
-					continue;
+			jobj[property.Name] = Serialize( value, property.HasAttribute( typeof(JsonTypeAnnotateAttribute) ) );
+		}
 
-				jobj[property.Name] = Serialize( value, property.HasAttribute( typeof(JsonTypeAnnotateAttribute) ) );
-			}
+		var fields = typeDesc.Fields.Where( x => x.IsPublic && !x.IsStatic &&
+		                                         !x.HasAttribute( typeof(JsonIgnoreAttribute) ) &&
+		                                         !x.HasAttribute( typeof(HideAttribute) ) )
+			.OrderBy( x => x.Order )
+			.ThenBy( x => x.SourceFile )
+			.ThenBy( x => x.SourceLine )
+			.ToList();
+
+		foreach ( var field in fields )
+		{
+			var value = field.GetValue( target );
+			if ( value is null )
+				continue;
+			jobj[field.Name] = Serialize( value, field.HasAttribute( typeof(JsonTypeAnnotateAttribute) ) );
 		}
 
 		return jobj;
@@ -255,15 +274,26 @@ internal static class Json
 			var node = enumerator.Current;
 
 			var property = typeDesc.GetProperty( node.Key );
-			if ( property is null )
+			bool isValidProperty = property is not null && property.CanWrite && property.CanRead;
+
+			var field = typeDesc.Fields.FirstOrDefault( x => !x.IsStatic && x.IsNamed( node.Key ) );
+			bool isValidField = field is not null && field.IsPublic;
+
+			if ( !isValidProperty && !isValidField )
 				continue;
 
-			var value = DeserializeInternal( node.Value, property.PropertyType );
+			var deserializeType = isValidProperty ? property.PropertyType : field.FieldType;
+			var value = DeserializeInternal( node.Value, deserializeType );
 			if ( value is null )
 				continue;
 
-			if ( value.GetType().IsAssignableTo( property.PropertyType ) )
-				property.SetValue( instance, value );
+			if ( value.GetType().IsAssignableTo( deserializeType ) )
+			{
+				if ( isValidProperty )
+					property.SetValue( instance, value );
+				else
+					field.SetValue( instance, value );
+			}
 		}
 
 		return instance;
