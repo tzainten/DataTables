@@ -204,13 +204,13 @@ internal class TableHeader : Widget
 			var list = Header._splitter.Labels;
 			for ( int i = 0; i < list.Count; i++ )
 			{
-				var lbl = list[i];
-				Header.Table.Columns[i].Width = (int)lbl.Width;
+				var width = (int)list[i].Width;
 
-				var _ = new Widget();
-				Header.Table.ListView.AddItem( _ );
-				Header.Table.ListView.RemoveItem( _ );
-				_.Destroy();
+				if ( Header.Table.Columns[i].Width != width )
+				{
+					Header.Table.Columns[i].Width = width;
+					Header.Table.ListView.Update();
+				}
 			}
 		}
 	}
