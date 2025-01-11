@@ -22,7 +22,7 @@ internal static class Json
 		return new JsonSerializerOptions() { WriteIndented = true };
 	}
 
-	public static JsonNode Serialize( object target, bool typeAnnotate )
+	public static JsonNode Serialize( object target, bool typeAnnotate, Type typeOverride = null )
 	{
 		var type = target.GetType();
 		var typeDesc = TypeLibrary.GetType( type );
@@ -37,7 +37,7 @@ internal static class Json
 		if ( type.IsAssignableTo( typeof(IDictionary) ) )
 			return SerializeDictionary( (IDictionary)target, typeAnnotate );
 
-		var node = SerializeObject( target, true );
+		var node = SerializeObject( target, true, typeOverride );
 		if ( typeAnnotate )
 			node["__type"] = typeDesc.FullName;
 		return node;
@@ -90,11 +90,11 @@ internal static class Json
 		return jarray;
 	}
 
-	public static JsonObject SerializeObject( object target, bool typeAnnotate )
+	public static JsonObject SerializeObject( object target, bool typeAnnotate, Type typeOverride = null )
 	{
 		JsonObject jobj = new();
 
-		var type = target.GetType();
+		var type = typeOverride ?? target.GetType();
 		var typeDesc = TypeLibrary.GetType( type );
 
 		if ( typeDesc.IsValueType || type.IsAssignableTo( typeof(Resource) ) ||
@@ -105,6 +105,8 @@ internal static class Json
 		foreach ( var member in members )
 		{
 			object value = null;
+			bool shouldAnnotate = false;
+
 			if ( member.IsField )
 			{
 				FieldDescription field = (FieldDescription)member;
@@ -112,7 +114,8 @@ internal static class Json
 				if ( value is null )
 					continue;
 
-				jobj[field.Name] = Serialize( value, field.HasAttribute( typeof(JsonTypeAnnotateAttribute) ) );
+				shouldAnnotate = field.HasAttribute( typeof(JsonTypeAnnotateAttribute) );
+				jobj[field.Name] = Serialize( value, shouldAnnotate, !shouldAnnotate ? field.FieldType : null );
 
 				continue;
 			}
@@ -122,7 +125,8 @@ internal static class Json
 			if ( value is null )
 				continue;
 
-			jobj[property.Name] = Serialize( value, property.HasAttribute( typeof(JsonTypeAnnotateAttribute) ) );
+			shouldAnnotate = property.HasAttribute( typeof(JsonTypeAnnotateAttribute) );
+			jobj[property.Name] = Serialize( value, shouldAnnotate, !shouldAnnotate ? property.PropertyType : null );
 		}
 
 		return jobj;
