@@ -204,13 +204,8 @@ internal class TableHeader : Widget
 			var list = Header._splitter.Labels;
 			for ( int i = 0; i < list.Count; i++ )
 			{
-				var width = (int)list[i].Width;
-
-				if ( Header.Table.Columns[i].Width != width )
-				{
-					Header.Table.Columns[i].Width = width;
-					Header.Table.ListView.Update();
-				}
+				Header.Table.Columns[i].Width = (int)list[i].Width;
+				Header.Table.ListView.Update();
 			}
 		}
 	}
