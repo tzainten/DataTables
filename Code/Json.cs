@@ -134,13 +134,6 @@ internal static class Json
 
 	public static T Deserialize<T>( string json )
 	{
-		Utf8JsonReader reader = new(Encoding.UTF8.GetBytes( json ),
-			new()
-			{
-				AllowTrailingCommas = false,
-				CommentHandling = JsonCommentHandling.Skip
-			});
-
 		JsonNode node = JsonNode.Parse( json );
 		if ( node is null )
 			return default;
