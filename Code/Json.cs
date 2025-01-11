@@ -147,10 +147,17 @@ internal static class Json
 	public static object DeserializeInternal( JsonNode node, Type type )
 	{
 		TypeDescription typeDesc = TypeLibrary.GetType( type );
-		if ( typeDesc is not null && typeDesc.IsValueType || type.IsAssignableTo( typeof(Resource) ) ||
-		     type.IsAssignableTo( typeof(string) ) )
+		if ( typeDesc is not null && (typeDesc.IsValueType || type.IsAssignableTo( typeof(Resource) ) ||
+		                              type.IsAssignableTo( typeof(string) )) )
 		{
-			return Sandbox.Json.FromNode( node, type );
+			try
+			{
+				return Sandbox.Json.FromNode( node, type );
+			}
+			catch ( Exception e )
+			{
+				return null;
+			}
 		}
 
 		if ( type.IsAssignableTo( typeof(IDictionary) ) )
