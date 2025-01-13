@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,10 +29,7 @@ public class DataTable : GameResource
 	[Title( "Get Row - {T|RowStruct}" )]
 	public T Get<T>( string rowName ) where T : RowStruct
 	{
-		T result = (T)StructEntries.Find( x => x.RowName == rowName );
-		if ( !WeakTable.ContainsKey( rowName ) )
-			WeakTable.Add( rowName, new WeakReference( result ) );
-		return result;
+		return (T)StructEntries.Find( x => x.RowName == rowName );
 	}
 
 	internal void Fix()
@@ -56,7 +54,14 @@ public class DataTable : GameResource
 					typeof(List<RowStruct>) );
 
 			if ( StructEntries.Count == 0 )
+			{
 				StructEntries = structEntries;
+				foreach ( var entry in StructEntries )
+				{
+					if ( !WeakTable.ContainsKey( entry.RowName ) )
+						WeakTable.Add( entry.RowName, new WeakReference( entry ) );
+				}
+			}
 			else
 			{
 				int i;
@@ -65,7 +70,11 @@ public class DataTable : GameResource
 					var row = StructEntries[i];
 					var otherRow = structEntries.Find( x => x.RowName == row.RowName );
 					if ( otherRow is null )
+					{
+						if ( WeakTable.ContainsKey( row.RowName ) )
+							WeakTable.Remove( row.RowName );
 						StructEntries.RemoveAt( i );
+					}
 				}
 
 				for ( i = 0; i < structEntries.Count; i++ )
@@ -75,10 +84,14 @@ public class DataTable : GameResource
 
 					if ( row is not null )
 					{
+						if ( !WeakTable.ContainsKey( row.RowName ) )
+							WeakTable.Add( row.RowName, new WeakReference( row ) );
 						TypeLibrary.Merge( row, otherRow );
 					}
 					else
 					{
+						if ( !WeakTable.ContainsKey( otherRow.RowName ) )
+							WeakTable.Add( otherRow.RowName, new WeakReference( otherRow ) );
 						StructEntries.Add( otherRow );
 					}
 				}
