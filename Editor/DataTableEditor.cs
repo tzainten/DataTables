@@ -922,12 +922,13 @@ public class DataTableEditor : DockWindow
 			}
 			else
 			{
+				var cloneRow = TypeLibrary.Clone( internalRow );
 				if ( _weakTable.TryGetValue( internalRow.RowName, out WeakReference weakReference ) )
 				{
 					if ( !weakReference.IsAlive )
 					{
-						_weakTable.Remove( internalRow.RowName );
-						_dataTable.StructEntries.Insert( i, TypeLibrary.Clone( internalRow ) );
+						_weakTable[internalRow.RowName] = new WeakReference( cloneRow );
+						_dataTable.StructEntries.Insert( i, cloneRow );
 						continue;
 					}
 
@@ -937,7 +938,8 @@ public class DataTableEditor : DockWindow
 					continue;
 				}
 
-				_dataTable.StructEntries.Insert( i, TypeLibrary.Clone( internalRow ) );
+				_weakTable.Add( internalRow.RowName, new WeakReference( cloneRow ) );
+				_dataTable.StructEntries.Insert( i, cloneRow );
 			}
 		}
 
