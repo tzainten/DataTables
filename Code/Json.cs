@@ -167,7 +167,14 @@ internal static class Json
 			case JsonValueKind.Array:
 				return DeserializeList( node.AsArray(), type );
 			default:
-				return Sandbox.Json.FromNode( node, type );
+				try
+				{
+					return Sandbox.Json.FromNode( node, type );
+				}
+				catch ( Exception e )
+				{
+					return null;
+				}
 		}
 	}
 
